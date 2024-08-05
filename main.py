@@ -5,7 +5,7 @@
 
 
 #!/usr/local/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding:UTF-8 -*-
 # @Project : loklok
 # @Time    : 2024/7/26 17:15
 # @Author  : bj
@@ -16,7 +16,6 @@ import sched
 import time
 import requests
 import threading
-
 from datetime import datetime, timedelta
 
 
