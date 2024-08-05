@@ -1,9 +1,3 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Project : loklok
@@ -12,11 +6,9 @@
 # @Email   : 475829130@qq.com
 # @File    : feedback_count.py
 # @Software: PyCharm
-import sched
-import time
+
 import requests
 import threading
-
 from datetime import datetime, timedelta
 
 
@@ -52,11 +44,6 @@ class FeedbackCount(threading.Thread):
         """ 本月的数据 """
         self.last_month = [self.start_or_end(self.now_time + timedelta(days=-62))[0],
                            self.start_or_end(self.now_time + timedelta(days=-32))[1]]
-        # print(self.yesterday_time)
-        # print(self.this_week)
-        # print(self.last_week)
-        # print(self.this_month)
-        # print(self.last_month)
 
     @staticmethod
     def start_or_end(date):
@@ -240,14 +227,19 @@ class FeedbackCount(threading.Thread):
 
 if __name__ == '__main__':
     count = FeedbackCount()
-    """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-    if 8 < datetime.now().hour <= 22:
-        count.get_hours_feed_info(hours=2)
-    """ 每天早上8点发送一次 """
-    if datetime.now().hour == 8:
-        count.get_hours_feed_info(hours=10)
+    """ 周一 - 周五"""
+    if datetime.now().weekday() <= 5:
+        """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
+        if 8 < datetime.now().hour <= 22:
+            count.get_hours_feed_info(hours=2)
+        """ 每天早上8点发送一次 """
+        if datetime.now().hour == 8:
+            count.get_hours_feed_info(hours=10)
+        else:
+            pass
     else:
-        pass
+        if (datetime.now().hour / 8) ==0:
+            count.get_hours_feed_info(hours=8)
 
 
 
