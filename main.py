@@ -1,5 +1,5 @@
-# !/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/local/bin/python
+# -*- coding:UTF-8 -*-
 # @Project : loklok
 # @Time    : 2024/7/26 17:15
 # @Author  : bj
