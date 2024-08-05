@@ -5,6 +5,7 @@
 
 
 # !/usr/bin/env python
+#!/bin/bash
 # -*- coding: utf-8 -*-
 # @Project : loklok
 # @Time    : 2024/7/26 17:15
