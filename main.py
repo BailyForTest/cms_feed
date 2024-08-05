@@ -4,9 +4,7 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 
-# !/usr/bin/env python
-#!/bin/bash
-# coding=UTF-8 
+# !/usr/bin/python
 # -*- coding: utf-8 -*-
 # @Project : loklok
 # @Time    : 2024/7/26 17:15
