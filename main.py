@@ -165,7 +165,7 @@ class FeedbackCount(threading.Thread):
         while not result_queue.empty():
             self.results.append(result_queue.get())
 
-        # print(self.results)
+        print(self.results)
 
         """ 转化为飞书消息格式 """
         # print(self.results)
