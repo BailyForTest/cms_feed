@@ -189,6 +189,15 @@ class FeedbackCount(threading.Thread):
                         print(ios_data)
                         self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351',
                                      data=ios_data)
+
+                    if Android != "":
+                        android_data = {"msg_type": "text",
+                                    "content":
+                                        {"text": txt + Android}
+                                }
+                        print(android_data)
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
+                                     data=android_data)
                     # print("------------------------------"+Android)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
@@ -230,20 +239,25 @@ class FeedbackCount(threading.Thread):
                    str(this_month) + "\n" + \
                    str(last_month) + "\n"
 
-        """ 周四下午3点发送一次报告 """
-        error_text = ''
-        if datetime.now().weekday() == 4 and datetime.now().hour == 15:
-            # self.send_webhook(all_data, self.today_time, self.today_time)
-            for type_name in this_week['this_week'].keys():
-                if this_week['this_week'][type_name] > int(last_week['last_week'][type_name] * 1.2):
-                    error_text += '本周对比上周{}上涨的幅度超过20%：'.format(type_name) + '\n'
-            for type_name in this_month['this_month'].keys():
-                if this_month['this_month'][type_name] > int(last_month['last_month'][type_name] * 1.2):
-                    error_text += '本月对比上月{}上涨的幅度超过20%：'.format(type) + '\n'
-                else:
-                    pass
-            if error_text != '':
-                print('')
+        data = {"msg_type": "text",
+                "content":
+                    {"text": all_data}
+                }
+        self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5ev", data)
+        # """ 周四下午3点发送一次报告 """
+        # error_text = ''
+        # if datetime.now().weekday() == 4 and datetime.now().hour == 15:
+        #     # self.send_webhook(all_data, self.today_time, self.today_time)
+        #     for type_name in this_week['this_week'].keys():
+        #         if this_week['this_week'][type_name] > int(last_week['last_week'][type_name] * 1.2):
+        #             error_text += '本周对比上周{}上涨的幅度超过20%：'.format(type_name) + '\n'
+        #     for type_name in this_month['this_month'].keys():
+        #         if this_month['this_month'][type_name] > int(last_month['last_month'][type_name] * 1.2):
+        #             error_text += '本月对比上月{}上涨的幅度超过20%：'.format(type) + '\n'
+        #         else:
+        #             pass
+        #     if error_text != '':
+        #         print('')
                 # self.send_webhook(error_text, self.today_time[0], self.today_time[1])
 
     """ 消息分发 """
@@ -259,6 +273,8 @@ if __name__ == '__main__':
 
     """ 周一 - 周五"""
     if datetime.now().weekday() <= 5:
+        if datetime.now().weekday() == 4 and datetime.now().hour == 3:
+            count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
             count.get_hours_feed_info(hours=2)
