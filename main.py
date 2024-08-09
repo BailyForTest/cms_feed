@@ -164,16 +164,18 @@ class FeedbackCount(threading.Thread):
 
         while not result_queue.empty():
             self.results.append(result_queue.get())
-
-        print(self.results)
+        print("---------------------------------------------result-----------------------------------------------------")
+        # print(self.results)
+        print("---------------------------------------------result-----------------------------------------------------")
 
         """ 转化为飞书消息格式 """
-        # print(self.results)
         all_data, IOS, Android = {}, '', ''
         for type_data in self.results:
             for k, v in type_data.items():
                 txt = "------------------------------{}:{} to {}:----------------------------". \
                           format(str(k), start_time, end_time, ) + "\n"
+                print('-----------------------------------v-----------------------------------------')
+                print(v)
                 if len(v) != 0:
                     for v1 in v:
                         """ IOS用户 """
@@ -181,24 +183,28 @@ class FeedbackCount(threading.Thread):
                             IOS += str(v1) + "\n"
                         else:
                             Android += str(v1) + "\n"
-                    if IOS != "":
+                    if IOS != '':
                         ios_data = {"msg_type": "text",
                                     "content":
                                         {"text": txt + IOS}
                                 }
+                        print('-----------------------ios_data--------------------------')
                         print(ios_data)
+                        print('-----------------------ios_data--------------------------')
                         self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351',
-                                     data=ios_data)
+                                 data=ios_data)
 
-                    if Android != "":
+                    if Android != '':
                         android_data = {"msg_type": "text",
                                     "content":
                                         {"text": txt + Android}
                                 }
+                        print('-----------------------android_data--------------------------')
                         print(android_data)
+                        print('-----------------------android_data--------------------------')
                         self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
                                      data=android_data)
-                    # print("------------------------------"+Android)
+                        # print("------------------------------"+Android)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
                                format(str(k), start_time, end_time, ) + "\n" + "近期无反馈"
@@ -206,7 +212,7 @@ class FeedbackCount(threading.Thread):
                             "content":
                                 {"text": txt}
                             }
-                    # print(data)
+                    print(data)
                     # self.webhook("", data)
 
     def get_all_feed(self, hours=2):
@@ -276,11 +282,11 @@ if __name__ == '__main__':
         if datetime.now().weekday() == 4 and datetime.now().hour == 3:
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-        if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
-            count.get_hours_feed_info(hours=2)
+        # if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
+        #     count.get_hours_feed_info(hours=2)
         """ 每天早上8点发送一次 """
         if datetime.now().hour == 8:
-            count.get_hours_feed_info(hours=2)
+            count.get_hours_feed_info(hours=10)
         else:
             pass
     else:
