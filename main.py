@@ -169,13 +169,14 @@ class FeedbackCount(threading.Thread):
         print("---------------------------------------------result-----------------------------------------------------")
 
         """ 转化为飞书消息格式 """
-        all_data, IOS, Android = {}, '', ''
+        all_data = {},
         for type_data in self.results:
             for k, v in type_data.items():
                 txt = "------------------------------{}:{} to {}:----------------------------". \
                           format(str(k), start_time, end_time, ) + "\n"
                 print('-----------------------------------v-----------------------------------------')
                 print(v)
+                IOS, Android = '', ''
                 if len(v) != 0:
                     for v1 in v:
                         """ IOS用户 """
