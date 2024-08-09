@@ -282,8 +282,8 @@ if __name__ == '__main__':
         if datetime.now().weekday() == 4 and datetime.now().hour == 3:
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-        # if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
-        #     count.get_hours_feed_info(hours=2)
+        if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
+            count.get_hours_feed_info(hours=2)
         """ 每天早上8点发送一次 """
         if datetime.now().hour == 8:
             count.get_hours_feed_info(hours=10)
