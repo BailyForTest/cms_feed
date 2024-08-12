@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     """ 周一 - 周五"""
     if datetime.now().weekday() <= 5:
-        if datetime.now().weekday() == 4 and datetime.now().hour == 3:
+        if datetime.now().weekday() == 3 and datetime.now().hour == 3:
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
