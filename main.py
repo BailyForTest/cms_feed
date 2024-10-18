@@ -61,7 +61,8 @@ class FeedbackCount(threading.Thread):
         endDate = date.replace(hour=23, minute=59, second=59, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
         return startDate, endDate
 
-    def is_first_letter_uppercase(self, s):
+    @staticmethod
+    def is_first_letter_uppercase(s):
         for i, char in enumerate(s):
             if char.isupper():
                 return True
