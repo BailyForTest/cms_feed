@@ -6,6 +6,11 @@
 # @Email   : 475829130@qq.com
 # @File    : feedback_count.py
 # @Software: PyCharm
+import hashlib
+import json
+import random
+import re
+from _md5 import md5
 from queue import Queue
 
 import requests
@@ -41,6 +46,8 @@ class FeedbackCount(threading.Thread):
         """ 上周的数据 """
         self.last_week = [self.start_or_end(self.now_time + timedelta(days=-14))[0],
                           self.start_or_end(self.now_time + timedelta(days=-8))[1]]
+        print(self.this_week)
+        print(self.last_week)
         """ 本月的数据 """
         self.this_month = [self.start_or_end(self.now_time + timedelta(days=-31))[0],
                            self.yesterday_time[1]]
@@ -164,32 +171,49 @@ class FeedbackCount(threading.Thread):
 
         while not result_queue.empty():
             self.results.append(result_queue.get())
-
-        print(self.results)
+        # print("---------------------------------------------result-----------------------------------------------------")
+        # print(self.results)
+        # print("---------------------------------------------result-----------------------------------------------------")
 
         """ 转化为飞书消息格式 """
-        # print(self.results)
-        all_data, IOS, Android = {}, '', ''
+        all_data = {}
         for type_data in self.results:
             for k, v in type_data.items():
                 txt = "------------------------------{}:{} to {}:----------------------------". \
                           format(str(k), start_time, end_time, ) + "\n"
+                print('-----------------------------------v-----------------------------------------')
+                print(v)
+                IOS, Android = '', ''
                 if len(v) != 0:
                     for v1 in v:
                         """ IOS用户 """
                         if self.is_first_letter_uppercase(v1['deviceId:']) is True:
+                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
                             IOS += str(v1) + "\n"
                         else:
+                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
                             Android += str(v1) + "\n"
-                    if IOS != "":
+                    if IOS != '':
                         ios_data = {"msg_type": "text",
                                     "content":
                                         {"text": txt + IOS}
                                 }
-                        print(ios_data)
+                        # print('-----------------------ios_data--------------------------')
+                        # print(ios_data)
+                        # print('-----------------------ios_data--------------------------')
                         self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351',
-                                     data=ios_data)
-                    # print("------------------------------"+Android)
+                                 data=ios_data)
+
+                    if Android != '':
+                        android_data = {"msg_type": "text",
+                                    "content":
+                                        {"text": txt + Android}
+                                }
+                        # print('-----------------------android_data--------------------------')
+                        # print(android_data)
+                        # print('-----------------------android_data--------------------------')
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
+                                     data=android_data)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
                                format(str(k), start_time, end_time, ) + "\n" + "近期无反馈"
@@ -197,74 +221,108 @@ class FeedbackCount(threading.Thread):
                             "content":
                                 {"text": txt}
                             }
-                    # print(data)
+                    print(data)
                     # self.webhook("", data)
 
     def get_all_feed(self, hours=2):
         """ 最近X消失的反馈内容 """
-        hours_data = count.count_feed(self.feedback_type_list,
-                                      (self.now_time + timedelta(hours=-hours)).strftime('%Y-%m-%d %H:%M:%S'),
-                                      self.now_time.strftime('%Y-%m-%d %H:%M:%S'))
-        """ 今天的反馈数据 """
-        today = count.count_feed(self.feedback_type_list, self.today_time[0], self.today_time[1], des="today")
-        """ 昨天的反馈数据 """
-        yesterday = count.count_feed(self.feedback_type_list,
-                                     self.yesterday_time[0], self.yesterday_time[1], des="yesterday")
+        # hours_data = count.count_feed(self.feedback_type_list,
+        #                               (self.now_time + timedelta(hours=-hours)).strftime('%Y-%m-%d %H:%M:%S'),
+        #                               self.now_time.strftime('%Y-%m-%d %H:%M:%S'))
+        # """ 今天的反馈数据 """
+        # today = count.count_feed(self.feedback_type_list, self.today_time[0], self.today_time[1], des="today")
+        # """ 昨天的反馈数据 """
+        # yesterday = count.count_feed(self.feedback_type_list,
+        #                              self.yesterday_time[0], self.yesterday_time[1], des="yesterday")
         """本周的反馈数据：截至到yesterday """
+        print(self.this_week)
         this_week = count.count_feed(self.feedback_type_list,
                                      self.this_week[0], self.this_week[1], des="this_week")
         """上周的反馈数据 """
+        print(self.last_week)
         last_week = count.count_feed(self.feedback_type_list,
                                      self.last_week[0], self.last_week[1], des="last_week")
-        """本月的反馈 """
-        this_month = count.count_feed(self.feedback_type_list,
-                                      self.this_month[0], self.this_month[1], des="this_month")
-        """上月的反馈 """
-        last_month = count.count_feed(self.feedback_type_list,
-                                      self.last_month[0], self.last_month[1], des="last_month")
-        all_data = str(hours_data) + "\n" + \
-                   str(today) + "\n" + \
-                   str(yesterday) + "\n" + \
-                   str(this_week) + "\n" + \
-                   str(last_week) + "\n" + \
-                   str(this_month) + "\n" + \
-                   str(last_month) + "\n"
+        # """本月的反馈 """
+        # this_month = count.count_feed(self.feedback_type_list,
+        #                               self.this_month[0], self.this_month[1], des="this_month")
+        # """上月的反馈 """
+        # last_month = count.count_feed(self.feedback_type_list,
+        #                               self.last_month[0], self.last_month[1], des="last_month")
+        # all_data = str(hours_data) + "\n" + \
+        #            str(today) + "\n" + \
+        #            str(yesterday) + "\n" + \
+        #            str(this_week) + "\n" + \
+        #            str(last_week) + "\n" + \
+        #            str(this_month) + "\n" + \
+        #            str(last_month) + "\n"
+        #
+        all_data = str(this_week) + "\n" + \
+                   str(last_week) + "\n"
 
-        """ 周四下午3点发送一次报告 """
-        error_text = ''
-        if datetime.now().weekday() == 4 and datetime.now().hour == 15:
-            # self.send_webhook(all_data, self.today_time, self.today_time)
-            for type_name in this_week['this_week'].keys():
-                if this_week['this_week'][type_name] > int(last_week['last_week'][type_name] * 1.2):
-                    error_text += '本周对比上周{}上涨的幅度超过20%：'.format(type_name) + '\n'
-            for type_name in this_month['this_month'].keys():
-                if this_month['this_month'][type_name] > int(last_month['last_month'][type_name] * 1.2):
-                    error_text += '本月对比上月{}上涨的幅度超过20%：'.format(type) + '\n'
-                else:
-                    pass
-            if error_text != '':
-                print('')
-                # self.send_webhook(error_text, self.today_time[0], self.today_time[1])
+        data = {"msg_type": "text",
+                "content":
+                    {"text": all_data}
+                }
+        self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5ev", data)
 
     """ 消息分发 """
-    def webhook(self, url, data):
+    @staticmethod
+    def webhook(url, data):
         header = {'Content-Type': 'application/json'}
         requests.post(url=url,
                       json=data, headers=header).json()
+
+    @staticmethod
+    def translate_test(query):
+        # Set your own appid/appkey.
+        appid = '20241012002173630'
+        appkey = 'ytbhHKyZOv8iltKUaK4R'
+
+        # For list of language codes, please refer to `https://api.fanyi.baidu.com/doc/21`
+        from_lang = 'auto'
+        to_lang = 'zh'
+
+        endpoint = 'http://api.fanyi.baidu.com'
+        path = '/api/trans/vip/translate'
+        url = endpoint + path
+
+        # Generate salt and sign
+        def make_md5(s, encoding='utf-8'):
+            return md5(s.encode(encoding)).hexdigest()
+
+        salt = random.randint(32768, 65536)
+        sign = make_md5(appid + query + str(salt) + appkey)
+
+        # Build request
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        payload = {'appid': appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}
+
+        # Send request
+        r = requests.post(url, params=payload, headers=headers)
+        result = r.json()
+
+        # Show response
+        print(json.dumps(result, indent=4, ensure_ascii=False))
+        return result
 
 
 if __name__ == '__main__':
     count = FeedbackCount()
     # print(count.is_first_letter_uppercase('d'))
+    # count.translate_test("Tidak boleh membuat pembayaran melalui tounh n go ")
 
+    # count.get_hours_feed_info()
     """ 周一 - 周五"""
     if datetime.now().weekday() <= 5:
+        if datetime.now().weekday() == 3 and datetime.now().hour == 16:
+            count.get_all_feed()
+        """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
             count.get_hours_feed_info(hours=2)
         """ 每天早上8点发送一次 """
         if datetime.now().hour == 8:
-            count.get_hours_feed_info(hours=2)
+            count.get_hours_feed_info(hours=10)
         else:
             pass
     else:
