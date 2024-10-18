@@ -46,8 +46,7 @@ class FeedbackCount(threading.Thread):
         """ 上周的数据 """
         self.last_week = [self.start_or_end(self.now_time + timedelta(days=-14))[0],
                           self.start_or_end(self.now_time + timedelta(days=-8))[1]]
-        print(self.this_week)
-        print(self.last_week)
+
         """ 本月的数据 """
         self.this_month = [self.start_or_end(self.now_time + timedelta(days=-31))[0],
                            self.yesterday_time[1]]
@@ -111,7 +110,7 @@ class FeedbackCount(threading.Thread):
         return resp.get('data')
 
     @staticmethod
-    def __assert(result_queue, type_name, data, start_Time, end_Time):
+    def __assert(result_queue, type_name, data):
         all_feed, feed_info, text_data = [], {}, ''
         feed_info[type_name] = []
         if not data:
@@ -122,19 +121,19 @@ class FeedbackCount(threading.Thread):
                 # print(eve_data)
                 text_data = {}
                 if eve_data.get('userId'):
-                    text_data["用户id:"] = str(eve_data.get('userId'))
+                    text_data["用户ID: "] = str(eve_data.get('userId'))
                 else:
-                    text_data["用户id:"] = 'None'
+                    text_data["用户ID: "] = 'None'
                 if eve_data.get('question'):
-                    text_data["question:"] = eve_data.get('question')
+                    text_data["问题描述: "] = eve_data.get('question')
                 if eve_data.get('deviceId'):
-                    text_data["deviceId:"] = eve_data.get('deviceId')
+                    text_data["设备ID: "] = eve_data.get('deviceId')
                 if eve_data.get('appVersion'):
-                    text_data["appVersion:"] = eve_data.get('appVersion')
+                    text_data["版本信息: "] = eve_data.get('appVersion')
                 if eve_data.get('createTime'):
-                    text_data["createTime:"] = eve_data.get('createTime')
+                    text_data["反馈时间: "] = eve_data.get('createTime')
                 if count.feedback_details(eve_data.get('id')).get('imgUrl'):
-                    text_data["imgUrl:"] = count.feedback_details(eve_data.get('id')).get('imgUrl')
+                    text_data["反馈截图: "] = count.feedback_details(eve_data.get('id')).get('imgUrl')
                 feed_info[type_name].append(text_data)
             result_queue.put(feed_info)
 
@@ -163,7 +162,7 @@ class FeedbackCount(threading.Thread):
             # self.__assert(des, type_name, now_data.get('content'))
             thread = threading.Thread(target=FeedbackCount.__assert,
                                       name=type_name,
-                                      args=(result_queue, type_name, now_data, start_time, end_time,))
+                                      args=(result_queue, type_name, now_data, ))
             threads.append(thread)
             thread.start()
 
@@ -172,49 +171,38 @@ class FeedbackCount(threading.Thread):
 
         while not result_queue.empty():
             self.results.append(result_queue.get())
-        # print("---------------------------------------------result-----------------------------------------------------")
-        # print(self.results)
-        # print("---------------------------------------------result-----------------------------------------------------")
 
         """ 转化为飞书消息格式 """
         all_data = {}
         for type_data in self.results:
             for k, v in type_data.items():
-                txt = "------------------------------{}:{} to {}:----------------------------". \
-                          format(str(k), start_time, end_time, ) + "\n"
-                print('-----------------------------------v-----------------------------------------')
-                print(v)
+                txt = "{}:".format(str(k) ) + "\n"
+                print('-----------------------------------v:{}-----------------------------------------'.format(v))
                 IOS, Android = '', ''
                 if len(v) != 0:
                     for v1 in v:
+                        v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"][0]
+                        str_v1 = ''
+                        for key, value in v1.items():
+                            str_v1 += str(key) + str(value) + " \n"
                         """ IOS用户 """
-                        if self.is_first_letter_uppercase(v1['deviceId:']) is True:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
-                            IOS += str(v1) + "\n"
+                        if self.is_first_letter_uppercase(v1['设备ID: ']) is True:
+                            IOS += str_v1 + " \n"
                         else:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
-                            Android += str(v1) + "\n"
+                            Android += str_v1 + " \n"
                     if IOS != '':
                         ios_data = {"msg_type": "text",
                                     "content":
-                                        {"text": txt + IOS}
-                                }
-                        # print('-----------------------ios_data--------------------------')
-                        # print(ios_data)
-                        # print('-----------------------ios_data--------------------------')
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351',
-                                 data=ios_data)
+                                        {"text": txt + IOS}}
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351', title=txt, data=IOS)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=IOS)
 
                     if Android != '':
                         android_data = {"msg_type": "text",
-                                    "content":
-                                        {"text": txt + Android}
-                                }
-                        # print('-----------------------android_data--------------------------')
-                        # print(android_data)
-                        # print('-----------------------android_data--------------------------')
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
-                                     data=android_data)
+                                        "content":
+                                            {"text": txt + Android}}
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title=txt, data=Android)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=Android)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
                                format(str(k), start_time, end_time, ) + "\n" + "近期无反馈"
@@ -264,14 +252,56 @@ class FeedbackCount(threading.Thread):
                 "content":
                     {"text": all_data}
                 }
-        self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5ev", data)
+        self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e", title="周报", data=all_data)
 
     """ 消息分发 """
     @staticmethod
-    def webhook(url, data):
+    def webhook(url, title,  data):
         header = {'Content-Type': 'application/json'}
-        requests.post(url=url,
-                      json=data, headers=header).json()
+
+        # 构建卡片消息的JSON对象
+        card = {
+                    "msg_type": "interactive",
+                    "card": {
+                        "elements": [{
+                                "tag": "div",
+                                "text": {
+                                        "content": data,
+                                        "tag": "lark_md"
+                                }
+                        },
+                           #  {
+                           #      "actions": [{
+                           #              "tag": "button",
+                           #              "text": {
+                           #                      "content": "查看图片",
+                           #                      "tag": "lark_md"
+                           #              },
+                           #              "url": "https://ugc.netpop.app/feedback/20241018/1729235159651_20241018_140549.jpg",
+                           #              "type": "default",
+                           #              "value": {}
+                           #      }],
+                           #      "tag": "action"
+                           # }
+                        ],
+                        "header": {
+                                "title": {
+                                        "content": title,
+                                        "tag": "plain_text"
+                                }
+                        }
+                    }
+                }
+        response = requests.post(
+            url,
+            headers=header,
+            data=json.dumps(card)
+        )
+        # 检查响应
+        if response.status_code == 200:
+            print("卡片消息发送成功")
+        else:
+            print("卡片消息发送失败", response.text)
 
     @staticmethod
     def translate_test(query):
