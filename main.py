@@ -189,10 +189,10 @@ class FeedbackCount(threading.Thread):
                     for v1 in v:
                         """ IOS用户 """
                         if self.is_first_letter_uppercase(v1['deviceId:']) is True:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
+                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]
                             IOS += str(v1) + "\n"
                         else:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]["dst"]
+                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]
                             Android += str(v1) + "\n"
                     if IOS != '':
                         ios_data = {"msg_type": "text",
