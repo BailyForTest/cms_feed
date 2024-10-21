@@ -359,7 +359,7 @@ if __name__ == '__main__':
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-        if 8 < datetime.now().hour <= 22 and (datetime.now().hour % 2) == 0:
+        if 8 < datetime.now().hour <= 22:
             count.get_hours_feed_info(hours=2)
         """ 每天早上8点发送一次 """
         if datetime.now().hour == 8:
