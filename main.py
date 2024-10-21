@@ -24,11 +24,11 @@ class FeedbackCount(threading.Thread):
         self.login_url = "https://admin-api.netpop.app/auth/backend/account/login"
         self.get_feedback_url = 'https://admin-api.netpop.app/user/behavior/backend/feedback/v2/page/0'
         self.token = self.login_cms()
-        self.feedback_type_list = {2: '内容相关',
-                                   3: '视频相关',
+        self.feedback_type_list = {3: '内容相关',
+                                   2: '视频相关',
                                    7: '系统报错',
                                    17: '闪退/卡顿/加载',
-                                   10: '会员相关',
+                                   10: 'VIP咨询',
                                    1: '语言字幕',
                                    4: '音量问题',
                                    5: '一起看相关',
@@ -201,8 +201,8 @@ class FeedbackCount(threading.Thread):
                         ios_data = {"msg_type": "text",
                                     "content":
                                         {"text": txt + IOS}}
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351', title=txt, data=IOS)
-                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=IOS)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351', title=txt, data=IOS)
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=IOS)
 
                     if Android != '':
                         android_data = {"msg_type": "text",
