@@ -9,8 +9,7 @@
 import hashlib
 import json
 import random
-import re
-from _md5 import md5
+import hashlib
 from queue import Queue
 
 import requests
@@ -177,10 +176,11 @@ class FeedbackCount(threading.Thread):
         for type_data in self.results:
             for k, v in type_data.items():
                 txt = "{}:".format(str(k)) + "\n"
-                print('-----------------------------------v:{}-----------------------------------------'.format(v))
+                # print('-----------------------------------v:{}-----------------------------------------'.format(v))
                 IOS, Android = '', ''
                 if len(v) != 0:
                     for v1 in v:
+                        print( v1['问题描述: '])
                         v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
                         str_v1 = ''
                         for key, value in v1.items():
@@ -201,15 +201,15 @@ class FeedbackCount(threading.Thread):
                         ios_data = {"msg_type": "text",
                                     "content":
                                         {"text": txt + IOS}}
-                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351', title=txt, data=IOS)
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=IOS)
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351', title=txt, data=IOS)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=IOS)
 
                     if Android != '':
                         android_data = {"msg_type": "text",
                                         "content":
                                             {"text": txt + Android}}
-                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title=txt, data=Android)
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=Android)
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title=txt, data=Android)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=Android)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
                                format(str(k), start_time, end_time, ) + "\n" + "近期无反馈"
@@ -325,11 +325,14 @@ class FeedbackCount(threading.Thread):
         url = endpoint + path
 
         # Generate salt and sign
-        def make_md5(s, encoding='utf-8'):
-            return md5(s.encode(encoding)).hexdigest()
+        # def make_md5(s, encoding='utf-8'):
+        #     return md5(s.encode(encoding)).hexdigest()
 
         salt = random.randint(32768, 65536)
-        sign = make_md5(appid + query + str(salt) + appkey)
+        md5_hash = hashlib.md5()
+        md5_hash.update((appid + query + str(salt) + appkey).encode())
+        sign = md5_hash.hexdigest()
+        # sign = make_md5(appid + query + str(salt) + appkey)
 
         # Build request
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
