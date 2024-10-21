@@ -176,12 +176,12 @@ class FeedbackCount(threading.Thread):
         all_data = {}
         for type_data in self.results:
             for k, v in type_data.items():
-                txt = "{}:".format(str(k) ) + "\n"
+                txt = "{}:".format(str(k)) + "\n"
                 print('-----------------------------------v:{}-----------------------------------------'.format(v))
                 IOS, Android = '', ''
                 if len(v) != 0:
                     for v1 in v:
-                        v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"][0]
+                        v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
                         str_v1 = ''
                         for key, value in v1.items():
                             str_v1 += str(key) + str(value) + " \n"
@@ -190,12 +190,12 @@ class FeedbackCount(threading.Thread):
                             IOS += str_v1 + " \n"
                         else:
                             Android += str_v1 + " \n"
-                        if self.is_first_letter_uppercase(v1['deviceId:']) is True:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]
-                            IOS += str(v1) + "\n"
-                        else:
-                            v1['question:'] = self.translate_test(v1['question:'])["trans_result"]
-                            Android += str(v1) + "\n"
+                        # if self.is_first_letter_uppercase(v1['设备ID: ']) is True:
+                        #     v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
+                        #     IOS += str(v1) + "\n"
+                        # else:
+                        #     v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
+                        #     Android += str(v1) + "\n"
 
                     if IOS != '':
                         ios_data = {"msg_type": "text",
@@ -208,8 +208,8 @@ class FeedbackCount(threading.Thread):
                         android_data = {"msg_type": "text",
                                         "content":
                                             {"text": txt + Android}}
-                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title=txt, data=Android)
-                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=Android)
+                        # self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title=txt, data=Android)
+                        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e', title=txt, data=Android)
                 else:
                     txt = "------------------------------{}:{} to {}:----------------------------". \
                                format(str(k), start_time, end_time, ) + "\n" + "近期无反馈"
