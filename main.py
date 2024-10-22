@@ -132,7 +132,11 @@ class FeedbackCount(threading.Thread):
                 if eve_data.get('createTime'):
                     text_data["反馈时间: "] = eve_data.get('createTime')
                 if count.feedback_details(eve_data.get('id')).get('imgUrl'):
-                    text_data["反馈截图: "] = count.feedback_details(eve_data.get('id')).get('imgUrl')
+                    imgUrl = count.feedback_details(eve_data.get('id')).get('imgUrl')
+                    imgUrl = imgUrl.strip('[]')
+                    imgUrl = imgUrl.replace('"', "")
+                    imgUrl = imgUrl.replace(',', "\\n")
+                    text_data["反馈截图: "] = imgUrl
                 feed_info[type_name].append(text_data)
             result_queue.put(feed_info)
 
