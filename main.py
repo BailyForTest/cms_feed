@@ -263,7 +263,8 @@ class FeedbackCount(threading.Thread):
                 "content":
                     {"text": all_data}
                 }
-        self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e", title="周报", data=all_data)
+        # self.webhook("https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e", title="周报", data=all_data)
+        self.webhook(url='https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48', title="一周总结", data=all_data)
 
     """ 消息分发 """
     @staticmethod
@@ -359,7 +360,7 @@ if __name__ == '__main__':
     # count.get_hours_feed_info()
     """ 周一 - 周五"""
     if datetime.now().weekday() <= 5:
-        if datetime.now().weekday() == 3 and datetime.now().hour == 16:
+        if datetime.now().weekday() == 3 and datetime.now().hour == 15:
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
