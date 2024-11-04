@@ -359,7 +359,7 @@ if __name__ == '__main__':
 
     # count.get_hours_feed_info()
     """ 周一 - 周五"""
-    if datetime.now().weekday() <= 5:
+    if datetime.now().weekday() <= 6:
         if datetime.now().weekday() == 3 and datetime.now().hour == 15:
             count.get_all_feed()
         """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
