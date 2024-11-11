@@ -354,21 +354,17 @@ class FeedbackCount(threading.Thread):
 
 if __name__ == '__main__':
     count = FeedbackCount()
-    # print(count.is_first_letter_uppercase('d'))
-    # count.translate_test("Tidak boleh membuat pembayaran melalui tounh n go ")
 
-    # count.get_hours_feed_info()
     """ 周一 - 周五"""
     if datetime.now().weekday() <= 6:
         if datetime.now().weekday() == 3 and datetime.now().hour == 15:
             count.get_all_feed()
-        """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-        """ 每隔两个小时发送一次推送；22点 - 8点发送一次 """
-        if 9 < datetime.now().hour <= 23 and (datetime.now().hour % 2) == 1:
+        """ 每隔两个小时发送一次推送 """
+        if 8 < datetime.now().hour <= 23:
             count.get_hours_feed_info(hours=2)
         """ 每天早上8点发送一次 """
-        if datetime.now().hour == 9:
-            count.get_hours_feed_info(hours=10)
+        if datetime.now().hour == 8:
+            count.get_hours_feed_info(hours=8)
         else:
             pass
     else:
