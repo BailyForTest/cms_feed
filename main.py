@@ -23,17 +23,21 @@ class FeedbackCount(threading.Thread):
         self.login_url = "https://admin-api.netpop.app/auth/backend/account/login"
         self.get_feedback_url = 'https://admin-api.netpop.app/user/behavior/backend/feedback/v2/page/0'
         self.token = self.login_cms()
-        self.feedback_type_list = {3: '内容相关',
-                                   2: '视频相关',
-                                   7: '系统报错',
-                                   17: '闪退/卡顿/加载',
-                                   10: 'VIP咨询',
-                                   1: '语言字幕',
-                                   4: '音量问题',
-                                   5: '一起看相关',
-                                   6: '电视投屏',
-                                   8: '扫描相关',
-                                   22: '充值相关'}
+        self.feedback_type_list = {25: '产品相关',
+                                   26: '关于loklok tv',
+                                   27: '关于PC',
+                                   28: 'VIP相关',
+                                   29: 'VIP相关',
+                                   29: 'VIP相关',
+                                   30: '内容/字幕相关问题',
+                                   31: '账号问题',
+                                   32: '未成年模式',
+                                   33: '一起看',
+                                   34: '联系我',
+                                   35: '功能引导',
+                                   36: '其他',
+                                   37: '其他'
+                                  }
         self.results = []
 
         self.now_time = datetime.now()
