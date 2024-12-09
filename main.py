@@ -127,6 +127,12 @@ class FeedbackCount(threading.Thread):
                     text_data["用户ID: "] = str(eve_data.get('userId'))
                 else:
                     text_data["用户ID: "] = 'None'
+                if eve_data.get('region'):
+                    text_data["用户地区: "] = str(eve_data.get('region'))
+                else:
+                    text_data["用户地区: "] = 'None'
+                if eve_data.get('appName'):
+                    text_data["版本渠道: "] = str(eve_data.get('appName'))
                 if eve_data.get('question'):
                     text_data["问题描述: "] = eve_data.get('question')
                 if eve_data.get('deviceId'):
