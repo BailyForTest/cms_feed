@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 class FeedbackCount(threading.Thread):
     def __init__(self):
         super().__init__()
-        self.login_url = "https://admin-push-api.otv.cc/quan/backend/auth/login"
-        self.suggest_page = 'https://admin-push-api.otv.cc/quan/backend/suggest/page'
+        self.login_url = "http://admin-push-api.otv.cc/quan/backend/auth/login"
+        self.suggest_page = 'http://admin-push-api.otv.cc/quan/backend/suggest/page'
         self.token = self.login_cms()
 
     @staticmethod
