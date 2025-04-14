@@ -366,24 +366,11 @@ class FeedbackCount(threading.Thread):
         url = "https://test-admin-api.netpop.app/third/backend/openai/translate"
 
         querystring = {"lan":"中文"}
-        headers = {
-            "accept": "application/json, text/plain, */*",
-            "accept-language": "zh-CN,zh;q=0.9",
-            "origin": "https://test-admin.netpop.app",
-            "priority": "u=1, i",
-            "referer": "https://test-admin.netpop.app/",
-            "sec-ch-ua": ""Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": ""Windows"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
-            "token": "9a73505b-8995-40c5-bdbc-f5339e26802f",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "Content-Type": "text/plain",
-            "content-type": "text/plain"
-        }
-
+        headers = 
+                {'Content-Type': 'application/json;charset=UTF-8',
+                  'token': "9a73505b-8995-40c5-bdbc-f5339e26802f",
+                  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                'Chrome/126.0.0.0 Safari/537.36'}        
         response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
         
         print(response.text)
