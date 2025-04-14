@@ -363,18 +363,31 @@ class FeedbackCount(threading.Thread):
         return result
         
     @staticmethod
-    def translate_test1(payload.encode('utf-8')):
+    def translate_test1(payload):
         url = "https://test-admin-api.netpop.app/third/backend/openai/translate"
 
-        querystring = {"lan":"中文"}
-        headers = {'Content-Type': 'application/json;charset=UTF-8',
-                  'token': "9a73505b-8995-40c5-bdbc-f5339e26802f",
-                  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                                'Chrome/126.0.0.0 Safari/537.36'}        
+        querystring = {"lan": "中文"}
+        payload = payload.encode('utf-8')  # 将字符串转为 UTF-8 字节
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "origin": "https://test-admin.netpop.app",
+            "priority": "u=1, i",
+            "referer": "https://test-admin.netpop.app/",
+            "sec-ch-ua": f'"Google Chrome";v="131", "Chromium";v="131", "Not:A Brand";v="24"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "Windows",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "token": "9a73505b-8995-40c5-bdbc-f5339e26802f",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Content-Type": "text/plain",
+            "content-type": "application/x-www-form-urlencoded"
+        }
         response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-        
-        print(response.text)
-        return response.text
+        print(response.json)
+        return response.json
 
 
 if __name__ == '__main__':
