@@ -366,8 +366,7 @@ class FeedbackCount(threading.Thread):
         url = "https://test-admin-api.netpop.app/third/backend/openai/translate"
 
         querystring = {"lan":"中文"}
-        headers = 
-                {'Content-Type': 'application/json;charset=UTF-8',
+        headers = {'Content-Type': 'application/json;charset=UTF-8',
                   'token': "9a73505b-8995-40c5-bdbc-f5339e26802f",
                   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                                 'Chrome/126.0.0.0 Safari/537.36'}        
