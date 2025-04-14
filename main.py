@@ -195,7 +195,8 @@ class FeedbackCount(threading.Thread):
                 if len(v) != 0:
                     for v1 in v:
                         print( v1['问题描述: '])
-                        v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
+                        # v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
+                        v1['问题描述: '] = self.translate_test1(v1['问题描述: '])
                         str_v1 = ''
                         for key, value in v1.items():
                             str_v1 += str(key) + str(value) + " \n"
@@ -360,6 +361,33 @@ class FeedbackCount(threading.Thread):
         # Show response
         print(json.dumps(result, indent=4, ensure_ascii=False))
         return result
+        
+    def translate_test1(payload):
+        url = "https://test-admin-api.netpop.app/third/backend/openai/translate"
+
+        querystring = {"lan":"中文"}
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "origin": "https://test-admin.netpop.app",
+            "priority": "u=1, i",
+            "referer": "https://test-admin.netpop.app/",
+            "sec-ch-ua": ""Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": ""Windows"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "token": "9a73505b-8995-40c5-bdbc-f5339e26802f",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Content-Type": "text/plain",
+            "content-type": "text/plain"
+        }
+
+        response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
+        
+        print(response.text)
+        return response.text
 
 
 if __name__ == '__main__':
