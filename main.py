@@ -361,8 +361,7 @@ class FeedbackCount(threading.Thread):
         print(json.dumps(result, indent=4, ensure_ascii=False))
         return result
         
-    @staticmethod
-    def translate_test1(payload):
+    def translate_test1(self, payload):
         url = "https://admin-api.netpop.app/third/backend/openai/translate"
 
         querystring = {"lan": "中文"}
