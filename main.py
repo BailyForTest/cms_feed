@@ -26,8 +26,7 @@ class FeedbackCount(threading.Thread):
         self.feedback_type_list = {25: '产品相关',
                                    26: '关于loklok tv',
                                    27: '关于PC',
-                                   28: 'VIP相关',
-                                   29: 'VIP相关',
+                                   # 28: 'VIP相关',
                                    29: 'VIP相关',
                                    30: '内容/字幕相关问题',
                                    31: '账号问题',
@@ -364,23 +363,23 @@ class FeedbackCount(threading.Thread):
         
     @staticmethod
     def translate_test1(payload):
-        url = "https://test-admin-api.netpop.app/third/backend/openai/translate"
+        url = "https://admin-api.netpop.app/third/backend/openai/translate"
 
         querystring = {"lan": "中文"}
         payload = payload.encode('utf-8')  # 将字符串转为 UTF-8 字节
         headers = {
             "accept": "application/json, text/plain, */*",
             "accept-language": "zh-CN,zh;q=0.9",
-            "origin": "https://test-admin.netpop.app",
+            "origin": "https://admin.netpop.app",
             "priority": "u=1, i",
-            "referer": "https://test-admin.netpop.app/",
+            "referer": "https://admin.netpop.app/",
             "sec-ch-ua": f'"Google Chrome";v="131", "Chromium";v="131", "Not:A Brand";v="24"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "Windows",
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-site",
-            "token": "9a73505b-8995-40c5-bdbc-f5339e26802f",
+            "token": self.token,
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             "Content-Type": "text/plain",
             "content-type": "application/x-www-form-urlencoded"
