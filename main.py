@@ -195,8 +195,8 @@ class FeedbackCount(threading.Thread):
                     for v1 in v:
                         print( v1['问题描述: '])
                         # v1['问题描述: '] = self.translate_test(v1['问题描述: '])["trans_result"]
-                        yuanwen = "原文："+v1['问题描述: '] + " \n"
-                        yiwen = self.translate_test1(v1['问题描述: '])
+                        yuanwen = " \n"+"原文："+v1['问题描述: '] + " \n"
+                        yiwen = "译文："+self.translate_test1(v1['问题描述: '])
                         v1['问题描述: '] = yuanwen + yiwen
                         str_v1 = ''
                         for key, value in v1.items():
