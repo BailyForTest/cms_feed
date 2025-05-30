@@ -120,8 +120,10 @@ if __name__ == '__main__':
     text = ""
     if not feedback.get('data').get('content'):
         text = "可喜可贺！没有投诉哦，又渡过了平安的0.5h!"
+        print(text)
         # webhook(url, text)
     else:
         for content in feedback.get('data').get('content'):
             text = str(replace_dict_keys(content)) + " \n"
+            print(text)
             webhook(url, text)
