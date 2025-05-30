@@ -54,7 +54,7 @@ mapping_dict = {
 
 
 def get_website_feedback():
-    url = "https://test-web-api.netpop.app/user/behavior/backend/website/feedback/page"
+    url = "https://web-api.netpop.app/user/behavior/backend/website/feedback/page"
     payload = {
         "page": 0,
         "size": 10,
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     text = ""
     if not feedback.get('data').get('content'):
         text = "可喜可贺！没有投诉哦，又渡过了平安的0.5h!"
-        webhook(url, text)
+        # webhook(url, text)
     else:
         for content in feedback.get('data').get('content'):
             text = str(replace_dict_keys(content)) + " \n"
