@@ -17,7 +17,7 @@ import requests
 # 获取当前的 UTC 时间戳
 current_timestamp = time.time() + 8 * 3600
 # 计算半个小时前的时间戳（减去 30 分钟，即 1800 秒）
-half_hour_ago_timestamp = current_timestamp - 6*3600
+half_hour_ago_timestamp = current_timestamp - 1*3600
 # 将时间戳转换为 UTC 时间元组
 current_time = time.gmtime(current_timestamp)
 half_hour_ago = time.gmtime(half_hour_ago_timestamp)
