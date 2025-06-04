@@ -237,15 +237,6 @@ class FeedbackCount(threading.Thread):
                     # self.webhook("", data)
 
     def get_all_feed(self, hours=2):
-        """ 最近X消失的反馈内容 """
-        # hours_data = count.count_feed(self.feedback_type_list,
-        #                               (self.now_time + timedelta(hours=-hours)).strftime('%Y-%m-%d %H:%M:%S'),
-        #                               self.now_time.strftime('%Y-%m-%d %H:%M:%S'))
-        # """ 今天的反馈数据 """
-        # today = count.count_feed(self.feedback_type_list, self.today_time[0], self.today_time[1], des="today")
-        # """ 昨天的反馈数据 """
-        # yesterday = count.count_feed(self.feedback_type_list,
-        #                              self.yesterday_time[0], self.yesterday_time[1], des="yesterday")
         """本周的反馈数据：截至到yesterday """
         print(self.this_week)
         this_week = count.count_feed(self.feedback_type_list,
@@ -254,20 +245,6 @@ class FeedbackCount(threading.Thread):
         print(self.last_week)
         last_week = count.count_feed(self.feedback_type_list,
                                      self.last_week[0], self.last_week[1], des="last_week")
-        # """本月的反馈 """
-        # this_month = count.count_feed(self.feedback_type_list,
-        #                               self.this_month[0], self.this_month[1], des="this_month")
-        # """上月的反馈 """
-        # last_month = count.count_feed(self.feedback_type_list,
-        #                               self.last_month[0], self.last_month[1], des="last_month")
-        # all_data = str(hours_data) + "\n" + \
-        #            str(today) + "\n" + \
-        #            str(yesterday) + "\n" + \
-        #            str(this_week) + "\n" + \
-        #            str(last_week) + "\n" + \
-        #            str(this_month) + "\n" + \
-        #            str(last_month) + "\n"
-        #
         all_data = str(this_week) + "\n" + \
                    str(last_week) + "\n"
 
@@ -293,21 +270,7 @@ class FeedbackCount(threading.Thread):
                                         "content": data,
                                         "tag": "lark_md"
                                 }
-                        },
-                           #  {
-                           #      "actions": [{
-                           #              "tag": "button",
-                           #              "text": {
-                           #                      "content": "查看图片",
-                           #                      "tag": "lark_md"
-                           #              },
-                           #              "url": "https://ugc.netpop.app/feedback/20241018/1729235159651_20241018_140549.jpg",
-                           #              "type": "default",
-                           #              "value": {}
-                           #      }],
-                           #      "tag": "action"
-                           # }
-                        ],
+                        },],
                         "header": {
                                 "title": {
                                         "content": title,
@@ -387,7 +350,7 @@ class FeedbackCount(threading.Thread):
         }
         response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
         print(response.json)
-        return response.text
+        return response.json.get("data")
 
 
 if __name__ == '__main__':
