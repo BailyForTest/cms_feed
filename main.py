@@ -350,7 +350,7 @@ class FeedbackCount(threading.Thread):
         }
         response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
         print(response.json)
-        return response.json.get("data")
+        return response
 
 
 if __name__ == '__main__':
