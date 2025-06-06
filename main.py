@@ -349,8 +349,8 @@ class FeedbackCount(threading.Thread):
             "content-type": "application/x-www-form-urlencoded"
         }
         response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-        print(response.json)
-        return response.json
+        print(response.json())
+        return response.json().get("data")
 
 
 if __name__ == '__main__':
