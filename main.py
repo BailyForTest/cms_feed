@@ -146,6 +146,10 @@ class FeedbackCount(threading.Thread):
                     imgUrl = imgUrl.replace('"', "")
                     imgUrl = imgUrl.replace(',', "\\n")
                     text_data["反馈截图: "] = imgUrl
+                if count.feedback_details(eve_data.get('id')).get('region'):
+                    text_data["IP地区: "] = eve_data.get('region')
+                if count.feedback_details(eve_data.get('id')).get('ipAddress'):
+                    text_data["IP地址: "] = eve_data.get('ipAddress')
                 feed_info[type_name].append(text_data)
             result_queue.put(feed_info)
 
