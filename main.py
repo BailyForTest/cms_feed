@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+# !/usr/local/bin/python
 # -*- coding: UTF-8 -*-
 # @Project : loklok
 # @Time    : 2024/7/26 17:15
@@ -8,7 +8,6 @@
 # @Software: PyCharm
 import hashlib
 import json
-import random
 import threading
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
@@ -50,8 +49,8 @@ class FeedbackCount(threading.Thread):
         """获取时间范围"""
         start = datetime.now() - timedelta(hours=hours, days=days)
         return (
-            start.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S'),
-            datetime.now().replace(hour=23, minute=59, second=59, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+            start.strftime('%Y-%m-%d %H:%M:%S'),
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         )
 
     def login_cms(self):
@@ -87,7 +86,7 @@ class FeedbackCount(threading.Thread):
         params = {"lan": "中文"}
         response = requests.post(self.TRANSLATE_URL, data=text.encode('utf-8'),
                                  headers=headers, params=params)
-        return response.json().get("data", "")
+        return response.json().get("data", text)  # 翻译失败时返回原文
 
     def process_feedback(self, feedback_type, start_time, end_time):
         """处理单个反馈类型的数据"""
@@ -119,16 +118,16 @@ class FeedbackCount(threading.Thread):
         if not text:
             return ""
         translated = self.translate_text(text)
-        return f"\n原文：{text}\n译文：{translated}"
+        return f"\n**原文**：{text}\n**译文**：{translated}"
 
     @staticmethod
     def format_images(img_url):
         """格式化图片URL"""
         if not img_url:
             return ""
-        return img_url.strip('[]').replace('"', "").replace(',', "\\n")
+        return img_url.strip('[]').replace('"', "").replace(',', "\n")
 
-    def send_to_feishu(self, data, platform):
+    def send_to_feishu(self, data, platform, start_time, end_time):
         """发送数据到飞书"""
         if not data:
             return
@@ -137,22 +136,38 @@ class FeedbackCount(threading.Thread):
         if not url:
             return
 
+        # 添加时间段信息到标题
+        time_range = f"{start_time} 至 {end_time}"
+        title = f"用户反馈 ({time_range})"
+
+        # 使用飞书markdown格式
+        markdown_content = f"### {title}\n\n{data}"
+
         card = {
             "msg_type": "interactive",
             "card": {
                 "elements": [{
                     "tag": "div",
-                    "text": {"content": data, "tag": "lark_md"}
+                    "text": {
+                        "content": markdown_content,
+                        "tag": "lark_md"
+                    }
                 }],
-                "header": {"title": {"content": "用户反馈", "tag": "plain_text"}}
+                "header": {
+                    "title": {
+                        "content": title,
+                        "tag": "plain_text"
+                    }
+                }
             }
         }
-        requests.post(url, json=card)
+        response = requests.post(url, json=card)
+        if response.status_code != 200:
+            print(f"飞书消息发送失败: {response.text}")
 
     def get_recent_feedback(self, hours=2):
         """获取最近几小时的反馈"""
-        start_time = (self.now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
-        end_time = self.now.strftime('%Y-%m-%d %H:%M:%S')
+        start_time, end_time = self.get_time_range(hours=hours)
 
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(self.process_feedback, ft, start_time, end_time)
@@ -166,34 +181,52 @@ class FeedbackCount(threading.Thread):
                 if not items:
                     continue
 
-                type_header = f"{type_name}:\n"
+                # 加粗类型名称
+                type_header = f"**{type_name}**:当前时间段该类型反馈合计{len(items)}条----------------------\n"
                 for item in items:
-                    content = "\n".join(f"{k}: {v}" for k, v in item.items()) + "\n\n"
+                    # 加粗关键字段
+                    content = "\n".join(
+                        f"**{k}**: {v}" if k in ["问题描述", "反馈类型"]
+                        else f"{k}: {v}"
+                        for k, v in item.items()
+                    ) + "\n\n"
+
                     if item['设备ID'].isupper():
                         ios_data += type_header + content
                     else:
                         android_data += type_header + content
                     type_header = ""  # 只在第一个条目显示类型标题
 
+        # 发送消息，添加时间段信息
         if ios_data:
-            self.send_to_feishu(ios_data, 'iOS')
+            self.send_to_feishu(ios_data, 'iOS', start_time, end_time)
         if android_data:
-            self.send_to_feishu(android_data, 'Android')
+            self.send_to_feishu(android_data, 'Android', start_time, end_time)
 
     def get_weekly_summary(self):
         """获取周汇总数据"""
-        this_week = self.get_time_range(days=7)
-        last_week = (self.now - timedelta(days=14), self.now - timedelta(days=8))
+        # 本周数据范围
+        this_week_start, this_week_end = self.get_time_range(days=7)
 
-        this_week_data = self.get_feedback_count(this_week[0], this_week[1])
-        last_week_data = self.get_feedback_count(last_week[0], last_week[1])
+        # 上周数据范围
+        last_week_start = (self.now - timedelta(days=14)).strftime('%Y-%m-%d %H:%M:%S')
+        last_week_end = (self.now - timedelta(days=8)).strftime('%Y-%m-%d %H:%M:%S')
 
-        summary = f"本周反馈总数: {this_week_data['total']}\n" \
-                  f"上周反馈总数: {last_week_data['total']}\n\n" \
-                  "本周分类统计:\n" + \
-                  "\n".join(f"{k}: {v}" for k, v in this_week_data.items() if k != 'total')
+        this_week_data = self.get_feedback_count(this_week_start, this_week_end)
+        last_week_data = self.get_feedback_count(last_week_start, last_week_end)
 
-        self.send_to_feishu(summary, 'Android')
+        # 构建时间段标题
+        time_range = f"本周: {this_week_start} 至 {this_week_end}"
+
+        # 构建消息内容，加粗关键字段
+        summary = f"**本周反馈总数**: {this_week_data['total']}\n" \
+                  f"**上周反馈总数**: {last_week_data['total']}\n\n" \
+                  "**本周分类统计**:\n" + \
+                  "\n".join(f"**{k}**: {v}" for k, v in this_week_data.items() if k != 'total') + \
+                  "\n\n**上周分类统计**:\n" + \
+                  "\n".join(f"**{k}**: {v}" for k, v in last_week_data.items() if k != 'total')
+
+        self.send_to_feishu(summary, 'Android', this_week_start, this_week_end)
 
     def get_feedback_count(self, start_date, end_date):
         """获取反馈统计"""
@@ -207,14 +240,25 @@ class FeedbackCount(threading.Thread):
 
     def run(self):
         """主运行逻辑"""
-        if datetime.now().weekday() == 3 and datetime.now().hour == 15:  # 周四下午3点
-            self.get_weekly_summary()
+        try:
+            # 周四下午3点发送周报
+            if datetime.now().weekday() == 3 and datetime.now().hour == 15:
+                self.get_weekly_summary()
 
-        current_hour = datetime.now().hour
-        if 8 < current_hour <= 23:  # 9-23点每小时运行
-            self.get_recent_feedback(hours=1)
-        elif current_hour == 8:  # 早上8点
-            self.get_recent_feedback(hours=8)
+            current_hour = datetime.now().hour
+            # 9-23点每小时运行
+            if 8 < current_hour <= 23:
+                self.get_recent_feedback(hours=1)
+            # 早上8点发送汇总
+            elif current_hour == 8:
+                self.get_recent_feedback(hours=8)
+        except Exception as e:
+            print(f"程序执行出错: {str(e)}")
+            # 发送错误通知到飞书
+            error_msg = f"反馈统计程序出错:\n**错误信息**: {str(e)}"
+            self.send_to_feishu(error_msg, 'Android',
+                                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
 if __name__ == '__main__':
