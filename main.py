@@ -11,6 +11,7 @@ Loklok 反馈统计系统
 所有统计信息都根据应用名和渠道组进行统计
 支持实时反馈统计和周汇总报告功能
 """
+from __future__ import annotations
 
 import hashlib
 import json
@@ -275,6 +276,53 @@ class FeedbackCount(threading.Thread):
             return ""
         return img_url.strip('[]').replace('"', "").replace(',', "\n")
 
+    def get_feedback_value_from_json_str(self, json_str: str | bytes | bytearray | None) -> str:
+        """
+        从 JSON 格式数据中提取 title=反馈描述 的 value（新增参数校验，解决 None 报错）
+        :param json_str: 原始 JSON 数据（支持 str/bytes/bytearray，允许为 None）
+        :return: 匹配的 value（参数非法/解析失败/无匹配均返回空字符串）
+        """
+        # 初始化返回值（确保始终返回字符串）
+        feedback_value = ""
+
+        # ---------------------- 关键：参数前置校验 ----------------------
+        # 1. 处理参数为 None 的情况
+        if json_str is None:
+            print("❌ 错误：传入的 JSON 数据为 None，请检查数据来源")
+            return feedback_value
+
+        # 2. 处理参数类型不合法（必须是 str/bytes/bytearray）
+        valid_types = (str, bytes, bytearray)
+        if not isinstance(json_str, valid_types):
+            print(f"❌ 错误：传入的 JSON 数据类型不合法（当前类型：{type(json_str)}），仅支持 {valid_types}")
+            return feedback_value
+
+        # ---------------------- 原有逻辑（JSON 解析 + 提取 value） ----------------------
+        try:
+            # 解析 JSON 数据（支持 str/bytes/bytearray）
+            data_list = json.loads(json_str)
+
+            # 验证解析结果是列表（避免 JSON 是字典/其他结构）
+            if not isinstance(data_list, list):
+                print("❌ 解析结果不是列表，无法提取数据")
+                return feedback_value
+
+            # 提取 title=反馈描述 的 value（全链路防护 None）
+            match_gen = (
+                item.get("value", "")  # 无 value 键 → 返回空字符串
+                for item in data_list
+                if item.get("title") == "问题描述"  # 无 title 键 → 不匹配
+            )
+            feedback_value = next(match_gen, "")  # 无匹配项 → 返回空字符串
+
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON 解析失败（格式错误）：{str(e)}")
+        except Exception as e:
+            print(f"❌ 处理失败：{str(e)}")
+
+        # 最终兜底：强制转为字符串（避免极端情况返回 None）
+        return str(feedback_value) if feedback_value is not None else ""
+
     def process_feedback_type(self, app_name, client_group, feedback_type_id, feedback_type_name, start_time, end_time):
         """
         处理单个应用-渠道组-反馈类型的数据
@@ -324,6 +372,13 @@ class FeedbackCount(threading.Thread):
                     "反馈时间": item.get('createTime', ''),
                     "反馈截图": self.format_images(detail.get('imgUrl', ''))
                 }
+                if detail.get('templateInfo') != '' and detail.get('templateInfo') is not None:
+                    print(item['id'])
+                    data = detail.get('templateInfo')
+                    # print("===================="+data)
+                    feed_detail = self.get_feedback_value_from_json_str(data)
+                    print("================="+feed_detail)
+                    text_data.update({"问题描述": self.format_description(feed_detail)})
                 processed.append(text_data)
 
             return {
@@ -587,7 +642,7 @@ class FeedbackCount(threading.Thread):
             for key, data in summary_data.items():
                 # 检查本周和上周的总反馈数，如果都为0则跳过
                 if data['this_week']['total'] == 0 and data['last_week']['total'] == 0:
-                    print(f"⚠️  {data['appName']} - {data['clientGroup']} 本周和上周均无反馈数据，跳过发送")
+                    # print(f"⚠️  {data['appName']} - {data['clientGroup']} 本周和上周均无反馈数据，跳过发送")
                     continue
 
                 # 构建消息内容
@@ -704,6 +759,8 @@ def main():
         print("\n👋 用户中断程序")
     except Exception as e:
         print(f"\n❌ 程序运行出错: {str(e)}")
+
+
 if __name__ == '__main__':
     count = FeedbackCount()
     count.run()
