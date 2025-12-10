@@ -11,8 +11,6 @@ Loklok 反馈统计系统
 所有统计信息都根据应用名和渠道组进行统计
 支持实时反馈统计和周汇总报告功能
 """
-from __future__ import annotations
-
 import hashlib
 import json
 import threading
@@ -276,7 +274,7 @@ class FeedbackCount(threading.Thread):
             return ""
         return img_url.strip('[]').replace('"', "").replace(',', "\n")
 
-    def get_feedback_value_from_json_str(self, json_str: str | bytes | bytearray | None) -> str:
+    def get_feedback_value_from_json_str(self, json_str: str) -> str:
         """
         从 JSON 格式数据中提取 title=反馈描述 的 value（新增参数校验，解决 None 报错）
         :param json_str: 原始 JSON 数据（支持 str/bytes/bytearray，允许为 None）
