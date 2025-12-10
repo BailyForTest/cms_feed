@@ -318,7 +318,7 @@ class FeedbackCount(threading.Thread):
                     "IP地区": item.get('region', detail.get('region', '')),
                     "IP地址": item.get('ipAddress', detail.get('ipAddress', '')),
                     "版本渠道": item.get('appName', ''),
-                    "问题描述": self.format_description(item.get('question', '')),
+                    "问题描述": self.format_description(detail.get('question', '')),
                     "设备ID": item.get('deviceId', ''),
                     "版本信息": item.get('appVersion', ''),
                     "反馈时间": item.get('createTime', ''),
