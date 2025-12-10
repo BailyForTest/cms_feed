@@ -373,7 +373,7 @@ class FeedbackCount(threading.Thread):
                 if detail.get('templateInfo') != '' and detail.get('templateInfo') is not None:
                     print(item['id'])
                     data = detail.get('templateInfo')
-                    # print("===================="+data)
+                    print("===================="+data)
                     feed_detail = self.get_feedback_value_from_json_str(data)
                     print("================="+feed_detail)
                     text_data.update({"问题描述": self.format_description(feed_detail)})
