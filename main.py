@@ -309,7 +309,7 @@ class FeedbackCount(threading.Thread):
             match_gen = (
                 item.get("value", "")  # 无 value 键 → 返回空字符串
                 for item in data_list
-                if item.get("title") == "问题描述"  # 无 title 键 → 不匹配
+                if item.get("title") == "问题描述" or item.get("title") == "反馈描述"  # 无 title 键 → 不匹配
             )
             feedback_value = next(match_gen, "")  # 无匹配项 → 返回空字符串
 
@@ -371,7 +371,7 @@ class FeedbackCount(threading.Thread):
                     "反馈截图": self.format_images(detail.get('imgUrl', ''))
                 }
                 if detail.get('templateInfo') != '' and detail.get('templateInfo') is not None:
-                    print(item['id'])
+                    # print(item['id'])
                     data = detail.get('templateInfo')
                     print("===================="+data)
                     feed_detail = self.get_feedback_value_from_json_str(data)
