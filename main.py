@@ -450,7 +450,7 @@ class FeedbackCount(threading.Thread):
                 url = self.WEBHOOK_URLS.get("Count")
                 title = f"{end_time} 用户反馈 ({type})"
             # 使用飞书markdown格式
-            markdown_content = f"\n{data}"
+            markdown_content = f"{data}"
 
             card = {
                 "msg_type": "interactive",
@@ -675,8 +675,8 @@ class FeedbackCount(threading.Thread):
                     continue
 
                 # 1. 基础信息（飞书加粗格式）
-                content = f"**应用名称**: {data['appName']}\n"
-                content += f"**渠道组**: {data['clientGroup']}\n\n"
+                # content = f"**应用名称**: {data['appName']}\n"
+                content = f"**渠道组**: {data['clientGroup']}\n"
 
                 # 2. 标题：本周和上周统计对比
                 content += "本周和上周统计对比:\n"
@@ -801,8 +801,8 @@ class FeedbackCount(threading.Thread):
                     continue
 
                 # 1. 基础信息（飞书加粗格式）
-                content = f"**应用名称**: {data['appName']}\n"
-                content += f"**渠道组**: {data['clientGroup']}\n\n"
+                # content = f"**应用名称**: {data['appName']}\n"
+                content = f"**渠道组**: {data['clientGroup']}\n"
 
                 # 2. 标题：本周和上周统计对比
                 content += "今天和昨天统计对比:\n"
