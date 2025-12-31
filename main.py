@@ -11,6 +11,8 @@ Loklok 反馈统计系统
 所有统计信息都根据应用名和渠道组进行统计
 支持实时反馈统计和周汇总报告功能
 """
+from __future__ import annotations
+
 import hashlib
 import json
 import threading
@@ -29,10 +31,11 @@ class FeedbackCount(threading.Thread):
 
     # 飞书机器人Webhook配置
     WEBHOOK_URLS = {
-        'Android': 'https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
-        # 'Android': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e',
-        'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351'
-        # 'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e'
+        # 'Android': 'https://open.feishu.cn/open-apis/bot/v2/hook/cdc47192-c4dd-4b38-b530-bd6063a60c48',
+        'Android': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e',
+        # 'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351'
+        'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e',
+        "Count": "https://open.feishu.cn/open-apis/bot/v2/hook/6954f098-de98-49e3-8640-f04ae47161ba"
     }
 
     # API配置
@@ -274,7 +277,7 @@ class FeedbackCount(threading.Thread):
             return ""
         return img_url.strip('[]').replace('"', "").replace(',', "\n")
 
-    def get_feedback_value_from_json_str(self, json_str: str) -> str:
+    def get_feedback_value_from_json_str(self, json_str: str | bytes | bytearray | None) -> str:
         """
         从 JSON 格式数据中提取 title=反馈描述 的 value（新增参数校验，解决 None 报错）
         :param json_str: 原始 JSON 数据（支持 str/bytes/bytearray，允许为 None）
@@ -309,7 +312,7 @@ class FeedbackCount(threading.Thread):
             match_gen = (
                 item.get("value", "")  # 无 value 键 → 返回空字符串
                 for item in data_list
-                if item.get("title") == "问题描述" or item.get("title") == "反馈描述"  # 无 title 键 → 不匹配
+                if item.get("title") == "问题描述"  # 无 title 键 → 不匹配
             )
             feedback_value = next(match_gen, "")  # 无匹配项 → 返回空字符串
 
@@ -371,9 +374,9 @@ class FeedbackCount(threading.Thread):
                     "反馈截图": self.format_images(detail.get('imgUrl', ''))
                 }
                 if detail.get('templateInfo') != '' and detail.get('templateInfo') is not None:
-                    # print(item['id'])
+                    print(item['id'])
                     data = detail.get('templateInfo')
-                    print("===================="+data)
+                    # print("===================="+data)
                     feed_detail = self.get_feedback_value_from_json_str(data)
                     print("================="+feed_detail)
                     text_data.update({"问题描述": self.format_description(feed_detail)})
@@ -422,7 +425,7 @@ class FeedbackCount(threading.Thread):
             print(f"❌ 处理反馈数量失败: {str(e)}")
             return None
 
-    def send_to_feishu(self, data, platform, start_time, end_time):
+    def send_to_feishu(self, data, platform, start_time, end_time, type=None):
         """
         发送数据到飞书
         :param data: 要发送的数据
@@ -433,18 +436,21 @@ class FeedbackCount(threading.Thread):
         try:
             if not data:
                 return
-
             url = self.WEBHOOK_URLS.get(platform)
             if not url:
                 print(f"❌ 未配置{platform}平台的飞书Webhook URL")
                 return
 
             # 添加时间段信息到标题
-            time_range = f"{start_time} 至 {end_time}"
-            title = f"用户反馈 ({time_range})"
-
+            if type is None:
+                url = self.WEBHOOK_URLS.get(platform)
+                time_range = f"{start_time} 至 {end_time}"
+                title = f"用户反馈 ({time_range})"
+            else:
+                url = self.WEBHOOK_URLS.get("Count")
+                title = f"{end_time} 用户反馈 ({type})"
             # 使用飞书markdown格式
-            markdown_content = f"### {title}\n\n{data}"
+            markdown_content = f"\n{data}"
 
             card = {
                 "msg_type": "interactive",
@@ -563,8 +569,29 @@ class FeedbackCount(threading.Thread):
         except Exception as e:
             print(f"❌ 获取最近反馈失败: {str(e)}")
 
+    def _calc_growth_rate(self, this_count, last_count):
+        """
+        辅助函数：计算环比增长率，返回格式化的环比字符串
+        :param this_count: 本周数量
+        :param last_count: 上周数量
+        :return: 格式化环比字符串
+        """
+        if last_count > 0:
+            change_rate = ((this_count - last_count) / last_count) * 100
+            # 统一格式：增长显示+，下降显示-，保留1位小数
+            if change_rate >= 0:
+                return f"+{change_rate:.1f}%"
+            else:
+                return f"{change_rate:.1f}%"
+        elif this_count > 0 and last_count == 0:
+            return "上周无数据，本周新增"
+        elif this_count == 0 and last_count > 0:
+            return "本周无数据，上周留存"
+        else:
+            return "无变化"
+
     def get_weekly_summary(self):
-        """获取周汇总数据（优化版，只统计数量）"""
+        """获取周汇总数据（优化版：适配飞书格式，一行对比本周/上周，展示环比增长）"""
         try:
             print("⏳ 开始生成周汇总报告...")
 
@@ -572,12 +599,17 @@ class FeedbackCount(threading.Thread):
                 print("❌ 未获取到反馈类型列表，无法生成周汇总报告")
                 return
 
-            # 本周数据范围
-            this_week_start, this_week_end = self.get_time_range(days=7)
+            # 基准时间规范化为当天上午10点
+            standard_now = self.now.replace(hour=10, minute=0, second=0, microsecond=0)
+            this_week_end = standard_now.strftime('%Y-%m-%d %H:%M:%S')
+            this_week_start = (standard_now - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+            last_week_start = (standard_now - timedelta(days=14)).strftime('%Y-%m-%d %H:%M:%S')
+            last_week_end = (standard_now - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
 
-            # 上周数据范围
-            last_week_start = (self.now - timedelta(days=14)).strftime('%Y-%m-%d %H:%M:%S')
-            last_week_end = (self.now - timedelta(days=8)).strftime('%Y-%m-%d %H:%M:%S')
+            print(this_week_start)
+            print(this_week_end)
+            print(last_week_start)
+            print(last_week_end)
 
             # 准备所有需要处理的任务
             this_week_tasks = []
@@ -636,41 +668,44 @@ class FeedbackCount(threading.Thread):
             # 统计有数据的应用渠道组数量
             valid_data_count = 0
 
-            # 构建汇总消息
+            # 构建汇总消息（适配飞书格式）
             for key, data in summary_data.items():
                 # 检查本周和上周的总反馈数，如果都为0则跳过
                 if data['this_week']['total'] == 0 and data['last_week']['total'] == 0:
-                    # print(f"⚠️  {data['appName']} - {data['clientGroup']} 本周和上周均无反馈数据，跳过发送")
                     continue
 
-                # 构建消息内容
+                # 1. 基础信息（飞书加粗格式）
                 content = f"**应用名称**: {data['appName']}\n"
                 content += f"**渠道组**: {data['clientGroup']}\n\n"
 
-                content += "**本周统计**:\n"
-                content += f"- **总反馈数**: {data['this_week']['total']}\n"
-                for type_name, count in data['this_week']['types'].items():
-                    if count > 0:
-                        content += f"  - **{type_name}**: {count}条\n"
+                # 2. 标题：本周和上周统计对比
+                content += "本周和上周统计对比:\n"
 
-                content += "\n**上周统计**:\n"
-                content += f"- **总反馈数**: {data['last_week']['total']}\n"
-                for type_name, count in data['last_week']['types'].items():
-                    if count > 0:
-                        content += f"  - **{type_name}**: {count}条\n"
+                # 3. 一级：总反馈数 一行对比 + 环比
+                last_total = data['last_week']['total']
+                this_total = data['this_week']['total']
+                total_growth = self._calc_growth_rate(this_total, last_total)
+                # 按要求格式拼接：上周总反馈数: X，本周总反馈数：Y，环比XXX%
+                content += f"- 上周总反馈数: {last_total}，本周总反馈数：{this_total}，环比 {total_growth}\n"
 
-                # 计算环比变化
-                if data['last_week']['total'] > 0:
-                    change_rate = ((data['this_week']['total'] - data['last_week']['total']) /
-                                   data['last_week']['total'] * 100)
-                    change_str = f"+{change_rate:.1f}%" if change_rate > 0 else f"{change_rate:.1f}%"
-                    content += f"\n**环比变化**: {change_str}\n"
-                elif data['this_week']['total'] > 0:
-                    content += f"\n**环比变化**: 上周无数据，本周新增 {data['this_week']['total']} 条反馈\n"
+                # 4. 二级：各反馈类型 缩进对比 + 环比（去重所有反馈类型）
+                # 合并本周和上周的所有反馈类型，避免遗漏
+                all_feedback_types = set(
+                    list(data['this_week']['types'].keys()) + list(data['last_week']['types'].keys()))
+                for type_name in all_feedback_types:
+                    last_type_count = data['last_week']['types'].get(type_name, 0)
+                    this_type_count = data['this_week']['types'].get(type_name, 0)
+                    # 跳过本周和上周都为0的类型
+                    if last_type_count == 0 and this_type_count == 0:
+                        continue
+                    # 计算该类型环比
+                    type_growth = self._calc_growth_rate(this_type_count, last_type_count)
+                    # 二级缩进（4个空格，适配飞书排版），按要求格式拼接
+                    content += f"  - 上周{type_name}: {last_type_count}条，本周{type_name}: {this_type_count}条，环比 {type_growth}\n"
 
-                # 发送消息
+                # 5. 发送飞书消息
                 platform = 'iOS' if 'iOS' in data['appName'] or 'ios' in data['appName'] else 'Android'
-                self.send_to_feishu(content, platform, this_week_start, this_week_end)
+                self.send_to_feishu(content, platform, this_week_start, this_week_end, type="周报")
                 valid_data_count += 1
 
             if valid_data_count == 0:
@@ -680,6 +715,132 @@ class FeedbackCount(threading.Thread):
 
         except Exception as e:
             print(f"❌ 生成周汇总报告失败: {str(e)}")
+
+    def get_daily_summary(self):
+        """获取周汇总数据（优化版：适配飞书格式，一行对比本周/上周，展示环比增长）"""
+        try:
+            print("⏳ 开始生成日汇总报告...")
+
+            if not self.feedback_list:
+                print("❌ 未获取到反馈类型列表，无法生成日汇总报告")
+                return
+
+            # 基准时间规范化为当天上午10点
+            standard_now = self.now.replace(hour=10, minute=0, second=0, microsecond=0)
+            this_week_end = standard_now.strftime('%Y-%m-%d %H:%M:%S')
+            this_week_start = (standard_now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+            last_week_start = (standard_now - timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')
+            last_week_end = (standard_now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+
+            print(this_week_start)
+            print(this_week_end)
+            print(last_week_start)
+            print(last_week_end)
+
+            # 准备所有需要处理的任务
+            this_week_tasks = []
+            last_week_tasks = []
+
+            for app_config in self.feedback_list:
+                feedback_types = app_config.get('FEEDBACK_TYPES', {})
+                for ft_id, ft_name in feedback_types.items():
+                    this_week_tasks.append((app_config['appName'], app_config['clientGroupCode'], ft_id, ft_name,
+                                            this_week_start, this_week_end))
+                    last_week_tasks.append((app_config['appName'], app_config['clientGroupCode'], ft_id, ft_name,
+                                            last_week_start, last_week_end))
+
+            if not this_week_tasks:
+                print("⚠️  没有需要处理的反馈类型")
+                return
+
+            # 使用线程池处理所有任务
+            with ThreadPoolExecutor() as executor:
+                # 处理本周数据（仅统计数量）
+                this_week_futures = [executor.submit(self.process_feedback_count_only, *task) for task in
+                                     this_week_tasks]
+                this_week_results = [future.result() for future in this_week_futures if future.result() is not None]
+
+                # 处理上周数据（仅统计数量）
+                last_week_futures = [executor.submit(self.process_feedback_count_only, *task) for task in
+                                     last_week_tasks]
+                last_week_results = [future.result() for future in last_week_futures if future.result() is not None]
+
+            # 按应用和渠道组分类汇总数据
+            summary_data = {}
+
+            # 处理本周数据
+            for result in this_week_results:
+                key = f"{result['appName']}_{result['clientGroup']}"
+                if key not in summary_data:
+                    summary_data[key] = {
+                        'appName': result['appName'],
+                        'clientGroup': result['clientGroup'],
+                        'this_week': {'total': 0, 'types': {}},
+                        'last_week': {'total': 0, 'types': {}}
+                    }
+
+                summary_data[key]['this_week']['total'] += result['count']
+                summary_data[key]['this_week']['types'][result['feedback_type']] = result['count']
+
+            # 处理上周数据
+            for result in last_week_results:
+                key = f"{result['appName']}_{result['clientGroup']}"
+                if key not in summary_data:
+                    continue
+
+                summary_data[key]['last_week']['total'] += result['count']
+                summary_data[key]['last_week']['types'][result['feedback_type']] = result['count']
+
+            # 统计有数据的应用渠道组数量
+            valid_data_count = 0
+
+            # 构建汇总消息（适配飞书格式）
+            for key, data in summary_data.items():
+                # 检查本周和上周的总反馈数，如果都为0则跳过
+                if data['this_week']['total'] == 0 and data['last_week']['total'] == 0:
+                    continue
+
+                # 1. 基础信息（飞书加粗格式）
+                content = f"**应用名称**: {data['appName']}\n"
+                content += f"**渠道组**: {data['clientGroup']}\n\n"
+
+                # 2. 标题：本周和上周统计对比
+                content += "今天和昨天统计对比:\n"
+
+                # 3. 一级：总反馈数 一行对比 + 环比
+                last_total = data['last_week']['total']
+                this_total = data['this_week']['total']
+                total_growth = self._calc_growth_rate(this_total, last_total)
+                # 按要求格式拼接：上周总反馈数: X，本周总反馈数：Y，环比XXX%
+                content += f"- 昨天总反馈数: {last_total}，今天总反馈数：{this_total}，环比 {total_growth}\n"
+
+                # 4. 二级：各反馈类型 缩进对比 + 环比（去重所有反馈类型）
+                # 合并本周和上周的所有反馈类型，避免遗漏
+                all_feedback_types = set(
+                    list(data['this_week']['types'].keys()) + list(data['last_week']['types'].keys()))
+                for type_name in all_feedback_types:
+                    last_type_count = data['last_week']['types'].get(type_name, 0)
+                    this_type_count = data['this_week']['types'].get(type_name, 0)
+                    # 跳过本周和上周都为0的类型
+                    if last_type_count == 0 and this_type_count == 0:
+                        continue
+                    # 计算该类型环比
+                    type_growth = self._calc_growth_rate(this_type_count, last_type_count)
+                    # 二级缩进（4个空格，适配飞书排版），按要求格式拼接
+                    content += f"  - 昨天{type_name}: {last_type_count}条，今天{type_name}: {this_type_count}条，环比 {type_growth}\n"
+
+                # 5. 发送飞书消息
+                platform = 'iOS' if 'iOS' in data['appName'] or 'ios' in data['appName'] else 'Android'
+                self.send_to_feishu(content, platform, this_week_start, this_week_end,  type="日报")
+                valid_data_count += 1
+
+            if valid_data_count == 0:
+                print("✅ 今天和昨天均无反馈数据，未发送任何周汇总报告")
+            else:
+                print(f"✅ 日汇总报告生成完成，共发送 {valid_data_count} 条报告")
+
+        except Exception as e:
+            print(f"❌ 生成日汇总报告失败: {str(e)}")
 
     def run(self):
         """主运行逻辑"""
@@ -694,15 +855,20 @@ class FeedbackCount(threading.Thread):
             if not self.feedback_list:
                 print("⚠️  未获取到反馈类型配置，可能影响统计功能")
 
-            # 周四下午3点发送周报
-            if datetime.now().weekday() == 3 and datetime.now().hour == 15:
+            # 周一上午10点发送周报
+            if datetime.now().weekday() == 0 and datetime.now().hour == 10:
                 self.get_weekly_summary()
 
             current_hour = datetime.now().hour
-            # 9-23点每小时运行
+            # 9-23点每小时，发送后台具体反馈明细
             if 8 < current_hour <= 23:
                 self.get_recent_feedback(hours=1)
-            # 早上8点发送汇总
+
+            # 每天早上10点发送日报
+            if current_hour == 10:
+                self.get_daily_summary()
+
+            # 早上8点发送汇总明细
             elif current_hour == 8:
                 self.get_recent_feedback(hours=8)
 
