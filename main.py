@@ -11,9 +11,6 @@ Loklok 反馈统计系统
 所有统计信息都根据应用名和渠道组进行统计
 支持实时反馈统计和周汇总报告功能
 """
-from __future__ import annotations
-
-import hashlib
 import json
 import threading
 import requests
@@ -277,7 +274,7 @@ class FeedbackCount(threading.Thread):
             return ""
         return img_url.strip('[]').replace('"', "").replace(',', "\n")
 
-    def get_feedback_value_from_json_str(self, json_str: str | bytes | bytearray | None) -> str:
+    def get_feedback_value_from_json_str(self, json_str) -> str:
         """
         从 JSON 格式数据中提取 title=反馈描述 的 value（新增参数校验，解决 None 报错）
         :param json_str: 原始 JSON 数据（支持 str/bytes/bytearray，允许为 None）
@@ -846,6 +843,8 @@ class FeedbackCount(threading.Thread):
         """主运行逻辑"""
         try:
             print("🚀 反馈统计系统启动")
+            current_hour = datetime.now().hour
+            weekday = datetime.now().weekday()
 
             # 检查必要的配置
             if not self.token:
@@ -855,22 +854,23 @@ class FeedbackCount(threading.Thread):
             if not self.feedback_list:
                 print("⚠️  未获取到反馈类型配置，可能影响统计功能")
 
-            # 周一上午10点发送周报
-            if datetime.now().weekday() == 0 and datetime.now().hour == 10:
-                self.get_weekly_summary()
-
-            current_hour = datetime.now().hour
-            # 9-23点每小时，发送后台具体反馈明细
-            if 8 < current_hour <= 23:
-                self.get_recent_feedback(hours=1)
-
-            # 每天早上10点发送日报
+            # 早上10点发送日报
             if current_hour == 10:
+                self.get_recent_feedback(hours=1)
                 self.get_daily_summary()
+                # 周一发送周报
+                if weekday == 0:
+                    self.get_recent_feedback(hours=1)
+                    self.get_weekly_summary()
+                else:
+                    self.get_recent_feedback(hours=1)
 
             # 早上8点发送汇总明细
             elif current_hour == 8:
                 self.get_recent_feedback(hours=8)
+
+            else:
+                self.get_recent_feedback(hours=1)
 
         except Exception as e:
             print(f"❌ 程序执行出错: {str(e)}")
