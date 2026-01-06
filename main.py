@@ -1508,7 +1508,7 @@ class FeedbackCount(threading.Thread):
                 print("⚠️  未获取到反馈类型配置，可能影响统计功能")
 
             # 早上10点发送日报
-            if current_hour == 12:
+            if current_hour == 10:
                 self.count_all()
                 self.get_recent_feedback(hours=1)
                 self.get_daily_summary()
