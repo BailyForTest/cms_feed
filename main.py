@@ -319,7 +319,7 @@ class FeedbackCount(threading.Thread):
             match_gen = (
                 item.get("value", "")  # 无 value 键 → 返回空字符串
                 for item in data_list
-                if item.get("title") == "问题描述" or item.get("title") == "反馈描述" or item.get("title") == "请输入剧集/电影" # 无 title 键 → 不匹配
+                if item.get("title") == "问题描述" or item.get("title") == "反馈描述" or item.get("title") == "请输入剧集/电影名称" # 无 title 键 → 不匹配
             )
             feedback_value = next(match_gen, "")  # 无匹配项 → 返回空字符串
 
