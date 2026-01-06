@@ -13,10 +13,15 @@ Loklok 反馈统计系统
 """
 import json
 import threading
+from typing import Dict, Tuple, List
+
 import requests
 import sys
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
+
+import yaml
+import os
 
 
 class FeedbackCount(threading.Thread):
@@ -41,6 +46,11 @@ class FeedbackCount(threading.Thread):
     CMS_LOGIN_URL = "https://admin-api.netpop.app/auth/backend/account/login"
     FEEDBACK_URL = 'https://admin-api.netpop.app/user/behavior/backend/feedback/v2/page/0'
     TRANSLATE_URL = "https://admin-api.netpop.app/third/backend/openai/translate"
+
+    # 已解决、未解决问题数的接口URL
+    CHANNEL_CONFIG_URL = "https://admin-api.netpop.app/user/behavior/backend/feedback/issue/config"
+    CATEGORY_LIST_URL = "https://admin-api.netpop.app/cms/backend/issues/category/queryByPage"
+    SUBCATEGORY_LIST_URL = "https://admin-api.netpop.app/cms/backend/issues/queryByPage"
 
     # HTTP请求头
     HEADERS = {
@@ -422,7 +432,7 @@ class FeedbackCount(threading.Thread):
             print(f"❌ 处理反馈数量失败: {str(e)}")
             return None
 
-    def send_to_feishu(self, data, platform, start_time, end_time, type=None):
+    def send_to_feishu(self, data=None, platform=None, start_time=None, end_time=None, type=None, title=None):
         """
         发送数据到飞书
         :param data: 要发送的数据
@@ -443,6 +453,12 @@ class FeedbackCount(threading.Thread):
                 url = self.WEBHOOK_URLS.get(platform)
                 time_range = f"{start_time} 至 {end_time}"
                 title = f"用户反馈 ({time_range})"
+            elif type == "day_count":
+                url = self.WEBHOOK_URLS.get("Count")
+                title = f"{title} )"
+            elif type == "week_count":
+                url = self.WEBHOOK_URLS.get("Count")
+                title = f"{title} )"
             else:
                 url = self.WEBHOOK_URLS.get("Count")
                 title = f"{end_time} 用户反馈 ({type})"
@@ -839,6 +855,643 @@ class FeedbackCount(threading.Thread):
         except Exception as e:
             print(f"❌ 生成日汇总报告失败: {str(e)}")
 
+    ####--------------------获取已解决/未解决数模块
+    def get_channel_config(self):
+        """
+        第一步：获取所有渠道配置信息
+        返回：渠道配置列表（失败返回空列表）
+        """
+        try:
+            headers = {**self.HEADERS, 'token': self.token}
+            response = requests.get(self.CHANNEL_CONFIG_URL, headers=headers, timeout=30)
+            response.raise_for_status()  # 抛出HTTP错误
+            result = response.json()
+
+            if result.get("code") == "00000":
+                return result["data"]
+            else:
+                return []
+        except Exception as e:
+            return []
+
+    def get_category_details(self, app_name, client_group, platform_type):
+        """
+        第二步：根据渠道信息获取大类问题详情
+        参数：
+            app_name: 应用名称（如LOKLOK）
+            client_group: 客户端分组编码（如LOKLOK）
+            platform_type: 平台类型（如APP）
+        返回：大类列表（失败返回空列表）
+        """
+        params = {
+            "appName": app_name,
+            "clientGroup": client_group,
+            "platformType": platform_type,
+            "page": 0,
+            "size": 100  # 设为足够大的值，确保获取所有大类
+        }
+        try:
+            headers = {**self.HEADERS, 'token': self.token}
+            response = requests.get(self.CATEGORY_LIST_URL, headers=headers, params=params, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("code") == "00000":
+                categories = result["data"].get("content", [])
+                return categories
+            else:
+                return []
+        except Exception as e:
+            return []
+
+    def get_subcategory_details(self, category_id):
+        """
+        第三步：根据大类ID获取小类问题详情
+        参数：
+            category_id: 大类ID（如29）
+        返回：小类列表（失败返回空列表）
+        """
+        params = {
+            "categoryId": category_id,
+            "page": 0,
+            "size": 9999  # 设为足够大的值，确保获取所有小类
+        }
+        try:
+            headers = {**self.HEADERS, 'token': self.token}
+            response = requests.get(self.SUBCATEGORY_LIST_URL, headers=headers, params=params, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("code") == "00000":
+                subcategories = result["data"].get("content", [])
+                return subcategories
+            else:
+                return []
+        except Exception as e:
+            return []
+
+    def calculate_subcategory_stats(self, subcategories):
+        """
+        统计小类的resolvedQty和unresolvedQty总和
+        注意：需要处理主小类和sonIssuesList中的嵌套小类
+        返回：统计结果字典 {"resolved_total": 数值, "unresolved_total": 数值}
+        """
+        resolved_total = 0
+        unresolved_total = 0
+
+        # 遍历每个小类
+        for idx, sub in enumerate(subcategories):
+            sub_id = sub.get("id")
+            sub_title = sub.get("innerTitle", "未知标题")
+
+            # 1. 主小类的数值（处理None/空值）
+            sub_resolved = sub.get("resolvedQty")
+            sub_unresolved = sub.get("unresolvedQty")
+            # 转换None为0
+            sub_resolved = 0 if sub_resolved is None else sub_resolved
+            sub_unresolved = 0 if sub_unresolved is None else sub_unresolved
+
+            resolved_total += sub_resolved
+            unresolved_total += sub_unresolved
+
+            # 2. 嵌套sonIssuesList中的小类数值
+            son_issues = sub.get("sonIssuesList", [])
+            for son_idx, son in enumerate(son_issues):
+                son_id = son.get("id")
+                son_title = son.get("innerTitle", "未知子标题")
+                son_resolved = son.get("resolvedQty")
+                son_unresolved = son.get("unresolvedQty")
+                # 转换None为0
+                son_resolved = 0 if son_resolved is None else son_resolved
+                son_unresolved = 0 if son_unresolved is None else son_unresolved
+
+                resolved_total += son_resolved
+                unresolved_total += son_unresolved
+
+        return {
+            "resolved_total": resolved_total,
+            "unresolved_total": unresolved_total
+        }
+
+    def print_final_stats(self, final_result):
+        """
+        格式化输出最终统计结果（重点：清晰展示每个大类的总计）
+        """
+        print("\n" + "=" * 80)
+        print("📈 最终统计结果（按渠道+大类）")
+        print("=" * 80)
+
+        for date, channel_data in final_result.items():
+            print(f"\n📅 统计日期：{date}")
+            for channel_key, category_data in channel_data.items():
+                print(f"\n  🔹 渠道：{channel_key}")
+                if not category_data:
+                    print(f"     └─ 无大类数据")
+                    continue
+                for category_id, stats in category_data.items():
+                    print(f"     ├─ 大类ID：{category_id} | 大类名称：{stats['category_title']}")
+                    print(f"     │  ├─ 已解决总数：{stats['resolved_total']}")
+                    print(f"     │  └─ 未解决总数：{stats['unresolved_total']}")
+        print("\n" + "=" * 80)
+
+    def count_all(self):
+        """主流程：整合所有步骤，统计并输出结果"""
+        final_result = {}
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        final_result[current_date] = {}
+
+        # 第一步：获取渠道配置
+        channels = self.get_channel_config()
+        if not channels:
+            return final_result
+
+        # 遍历每个渠道（可先测试单个渠道，比如只测LOKLOK-APP）
+        for channel in channels:
+            app_name = channel.get("appName")
+            client_group = channel.get("clientGroupCode")
+            platform_type = channel.get("platformType")
+            channel_key = f"{app_name}_{client_group}_{platform_type}"
+            final_result[current_date][channel_key] = {}
+
+            # 【可选】仅测试LOKLOK-APP渠道（减少请求量，方便调试）
+            # if channel_key != "LOKLOK_LOKLOK_APP":
+            #     continue
+
+            # 第二步：获取大类
+            categories = self.get_category_details(app_name, client_group, platform_type)
+            if not categories:
+                continue
+
+            # 第三步：遍历大类，获取小类并统计
+            for category in categories:
+                category_id = category.get("id")
+                # print(category_id)
+                category_title = category.get("categoryTitle", "未知大类")
+
+                # 获取小类
+                subcategories = self.get_subcategory_details(category_id)
+                # print(subcategories)
+                if not subcategories:
+                    final_result[current_date][channel_key][category_id] = {
+                        "category_title": category_title,
+                        "resolved_total": 0,
+                        "unresolved_total": 0
+                    }
+                    continue
+
+                # 统计小类数值
+                stats = self.calculate_subcategory_stats(subcategories)
+
+                # 保存结果
+                final_result[current_date][channel_key][category_id] = {
+                    "category_title": category_title,
+                    "resolved_total": stats["resolved_total"],
+                    "unresolved_total": stats["unresolved_total"]
+                }
+
+        # 格式化输出最终结果
+        # self.print_final_stats(final_result)
+        # 储存运行结果
+        self.save_data_to_yaml_append(final_result)
+        return final_result
+
+    def save_data_to_yaml_append(self, data_dict: Dict, file_path: str = "data_save.yaml") -> None:
+        """
+        将统计数据字典追加保存到YAML文件，不覆盖任何历史数据：
+        - 若文件中已存在当天数据 → 跳过写入（保留原有数据）
+        - 若文件中无当天数据 → 新增该日期数据（持续写入）
+        - 所有历史日期数据全程保留
+
+        参数：
+            data_dict: 待保存的字典（结构：{日期: {渠道: {大类ID: 统计数据}}}）
+            file_path: 保存路径，默认当前目录下的data_save.yaml
+        """
+        # 1. 输入数据校验（保证数据格式合法）
+        if not isinstance(data_dict, dict) or len(data_dict) == 0:
+            raise ValueError("输入的data_dict必须是非空字典")
+
+        # 提取新数据的日期键（假设data_dict仅包含一个日期的数据，符合业务逻辑）
+        new_date_key = list(data_dict.keys())[0]
+        if not isinstance(new_date_key, str) or len(new_date_key.split("-")) != 3:
+            raise ValueError("data_dict的键必须是'YYYY-MM-DD'格式的日期字符串")
+
+        try:
+            # 2. 读取已有数据（若无文件则初始化为空字典）
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_data = yaml.load(f, Loader=yaml.FullLoader) or {}
+            else:
+                existing_data = {}
+
+            # 3. 判断当天数据是否已存在 → 核心逻辑
+            if new_date_key in existing_data:
+                print(f"⚠️  日期[{new_date_key}]的数据已存在，跳过写入（不覆盖原有数据）")
+                final_data = existing_data  # 保留原有数据，不做任何修改
+            else:
+                print(f"📝 日期[{new_date_key}]的数据不存在，新增写入")
+                final_data = {**existing_data, **data_dict}  # 合并历史数据+新数据
+
+            # 4. 写入YAML文件（保持格式美观，保留所有类型和中文）
+            with open(file_path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    final_data,
+                    f,
+                    allow_unicode=True,  # 支持中文显示
+                    default_flow_style=False,  # 展开式格式（非压缩）
+                    sort_keys=False,  # 保持键的原有顺序
+                    indent=2  # 缩进2个空格，增强可读性
+                )
+
+            print(f"✅ 数据保存完成！")
+            print(f"📂 文件路径：{os.path.abspath(file_path)}")
+            print(f"📊 当前文件包含日期：{list(final_data.keys())}")
+
+        except PermissionError:
+            raise PermissionError(f"❌ 没有写入权限：{file_path}")
+        except Exception as e:
+            raise Exception(f"❌ 保存数据失败：{str(e)}")
+
+    def load_yaml_data(self, file_path: str = "data_save.yaml") -> Dict:
+        """
+        读取YAML文件数据，处理文件不存在/空文件的情况
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"❌ YAML文件不存在：{file_path}")
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = yaml.load(f, Loader=yaml.FullLoader) or {}
+            if not isinstance(data, dict):
+                raise ValueError("❌ YAML文件数据格式错误，必须是字典类型")
+            return data
+        except Exception as e:
+            raise Exception(f"❌ 读取YAML文件失败：{str(e)}")
+
+    def get_yesterday_and_today_dates(self) -> Tuple[str, str]:
+        """
+        获取昨天和今天的日期字符串（格式：YYYY-MM-DD）
+        """
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+        return yesterday.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
+
+    def get_weekly_date_range(self) -> List[str]:
+        """
+        新增：获取过去7天的日期列表（按时间升序排列，含今天）
+        返回格式：["2026-01-01", "2026-01-02", ..., "2026-01-07"]
+        """
+        today = datetime.now().date()
+        # 生成过去7天日期（今天-6天 ~ 今天）
+        weekly_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
+        return weekly_dates
+
+    def compare_daily_data(self,
+                           yaml_data: Dict,
+                           yesterday_date: str,
+                           today_date: str
+                           ) -> Dict:
+        """
+        核心对比逻辑：计算每个大类的已解决/未解决数据变化（单日）
+        返回格式：{渠道: {大类ID: {对比详情}}}
+        """
+        # 校验日期数据是否存在
+        yesterday_data = yaml_data.get(yesterday_date, {})
+        today_data = yaml_data.get(today_date, {})
+
+        if not yesterday_data:
+            print(f"⚠️  未找到[{yesterday_date}]的历史数据")
+        if not today_data:
+            print(f"⚠️  未找到[{today_date}]的今日数据")
+
+        compare_result = {}
+
+        # 遍历所有涉及的渠道（合并昨天和今天的渠道，避免遗漏）
+        all_channels = set(yesterday_data.keys()).union(set(today_data.keys()))
+
+        for channel in all_channels:
+            compare_result[channel] = {}
+            # 获取该渠道昨天和今天的大类数据
+            yesterday_channel = yesterday_data.get(channel, {})
+            today_channel = today_data.get(channel, {})
+
+            # 遍历该渠道下所有涉及的大类（合并两天的大类）
+            all_category_ids = set(yesterday_channel.keys()).union(set(today_channel.keys()))
+
+            for category_id in all_category_ids:
+                # 获取昨天的数值（无则为0）
+                y_cat = yesterday_channel.get(category_id, {})
+                y_resolved = y_cat.get("resolved_total", 0)
+                y_unresolved = y_cat.get("unresolved_total", 0)
+                y_title = y_cat.get("category_title", "未知大类")
+
+                # 获取今天的数值（无则为0）
+                t_cat = today_channel.get(category_id, {})
+                t_resolved = t_cat.get("resolved_total", 0)
+                t_unresolved = t_cat.get("unresolved_total", 0)
+                t_title = t_cat.get("category_title", y_title)  # 优先用今天的标题，无则用昨天的
+
+                # 计算变化值（今天 - 昨天）
+                resolved_diff = t_resolved - y_resolved
+                unresolved_diff = t_unresolved - y_unresolved
+
+                # 标记变化类型（增长/减少/无变化）
+                resolved_trend = "↑" if resolved_diff > 0 else "↓" if resolved_diff < 0 else "─"
+                unresolved_trend = "↑" if unresolved_diff > 0 else "↓" if unresolved_diff < 0 else "─"
+
+                compare_result[channel][category_id] = {
+                    "category_title": t_title,
+                    "yesterday_resolved": y_resolved,
+                    "today_resolved": t_resolved,
+                    "resolved_diff": resolved_diff,
+                    "resolved_trend": resolved_trend,
+                    "yesterday_unresolved": y_unresolved,
+                    "today_unresolved": t_unresolved,
+                    "unresolved_diff": unresolved_diff,
+                    "unresolved_trend": unresolved_trend
+                }
+
+        return compare_result
+
+    def compare_weekly_data(self, yaml_data: Dict, weekly_dates: List[str]) -> Dict:
+        """
+        新增：一周数据对比核心逻辑
+        参数：
+            yaml_data: 读取的YAML完整数据
+            weekly_dates: 过去7天日期列表（升序）
+        返回：{渠道: {大类ID: {一周对比详情}}}
+        """
+        # 过滤掉YAML中不存在的日期，保留有效数据日期
+        valid_dates = [date for date in weekly_dates if date in yaml_data]
+        if len(valid_dates) < 2:
+            raise ValueError(f"❌ 一周对比需要至少2天有效数据，当前仅找到{len(valid_dates)}天")
+
+        print(f"🔍 一周对比有效日期：{valid_dates[0]} ~ {valid_dates[-1]}（共{len(valid_dates)}天）")
+
+        compare_result = {}
+        # 1. 收集所有涉及的渠道和大类，整理每天的原始数据
+        date_data_map = {}  # {日期: {渠道: {大类ID: {resolved, unresolved, title}}}}
+        all_channels = set()
+        all_category_ids = set()
+
+        for date in valid_dates:
+            date_data = yaml_data.get(date, {})
+            date_data_map[date] = {}
+            for channel, cat_data in date_data.items():
+                all_channels.add(channel)
+                date_data_map[date][channel] = {}
+                for cat_id, cat_info in cat_data.items():
+                    all_category_ids.add(cat_id)
+                    date_data_map[date][channel][cat_id] = {
+                        "resolved": cat_info.get("resolved_total", 0),
+                        "unresolved": cat_info.get("unresolved_total", 0),
+                        "title": cat_info.get("category_title", "未知大类")
+                    }
+
+        # 2. 逐渠道、逐大类计算一周变化指标
+        for channel in all_channels:
+            compare_result[channel] = {}
+            for cat_id in all_category_ids:
+                # 收集该大类每天的数值
+                daily_resolved = []
+                daily_unresolved = []
+                cat_title = "未知大类"
+
+                for date in valid_dates:
+                    channel_data = date_data_map[date].get(channel, {})
+                    cat_data = channel_data.get(cat_id, {})
+                    daily_resolved.append(cat_data.get("resolved", 0))
+                    daily_unresolved.append(cat_data.get("unresolved", 0))
+                    # 优先取有值的标题
+                    if cat_data.get("title") != "未知大类":
+                        cat_title = cat_data["title"]
+
+                # 计算核心指标
+                first_resolved = daily_resolved[0]
+                last_resolved = daily_resolved[-1]
+                total_resolved_diff = last_resolved - first_resolved  # 累计变化
+                avg_resolved_diff = round(total_resolved_diff / len(valid_dates), 2)  # 日均变化
+
+                first_unresolved = daily_unresolved[0]
+                last_unresolved = daily_unresolved[-1]
+                total_unresolved_diff = last_unresolved - first_unresolved
+                avg_unresolved_diff = round(total_unresolved_diff / len(valid_dates), 2)
+
+                # 趋势标识
+                resolved_trend = "↑" if total_resolved_diff > 0 else "↓" if total_resolved_diff < 0 else "─"
+                unresolved_trend = "↑" if total_unresolved_diff > 0 else "↓" if total_unresolved_diff < 0 else "─"
+
+                compare_result[channel][cat_id] = {
+                    "category_title": cat_title,
+                    "valid_dates": valid_dates,
+                    "daily_resolved": daily_resolved,
+                    "daily_unresolved": daily_unresolved,
+                    "first_resolved": first_resolved,
+                    "last_resolved": last_resolved,
+                    "total_resolved_diff": total_resolved_diff,
+                    "avg_resolved_diff": avg_resolved_diff,
+                    "resolved_trend": resolved_trend,
+                    "first_unresolved": first_unresolved,
+                    "last_unresolved": last_unresolved,
+                    "total_unresolved_diff": total_unresolved_diff,
+                    "avg_unresolved_diff": avg_unresolved_diff,
+                    "unresolved_trend": unresolved_trend
+                }
+
+        return compare_result
+
+    def print_compare_result(self,
+                             compare_result: Dict,
+                             yesterday_date: str,
+                             today_date: str) -> str:
+        """
+        改造后：返回单日对比结果的格式化字符串（用于飞书发送）
+        返回：拼接好的统计字符串，兼容飞书消息换行/格式
+        """
+        # 初始化结果字符串
+        result_str = ""
+
+        # 拼接标题和分隔线
+        result_str += "\n" + "=" * 120 + "\n"
+        result_str += f"📊 数据变化对比 ({yesterday_date} → {today_date})" + "\n"
+        result_str += "=" * 120 + "\n"
+
+        for channel, category_data in compare_result.items():
+            if not category_data:  # 渠道下无大类数据，跳过
+                continue
+
+            # 拼接渠道名称和分隔线
+            result_str += f"\n🔹 渠道：{channel}" + "\n"
+            result_str += "-" * 100 + "\n"
+
+            # 拼接表头
+            header_line = (
+                f"{'大类ID':<8} {'大类名称':<20} {'已解决(昨日)':<12} {'已解决(今日)':<12} "
+                f"{'已解决变化':<15} {'未解决(昨日)':<12} {'未解决(今日)':<12} {'未解决变化':<15}"
+            )
+            result_str += header_line + "\n"
+
+            # 拼接表头分隔线
+            separator_line = (
+                f"{'─' * 8:<8} {'─' * 20:<20} {'─' * 12:<12} {'─' * 12:<12} "
+                f"{'─' * 15:<15} {'─' * 12:<12} {'─' * 12:<12} {'─' * 15:<15}"
+            )
+            result_str += separator_line + "\n"
+
+            # 拼接每个大类的统计数据
+            for cat_id, stats in category_data.items():
+                # 格式化变化值（带符号和趋势）
+                resolved_diff_str = f"{stats['resolved_trend']} {stats['resolved_diff']:+}" if stats[
+                                                                                                   'resolved_diff'] != 0 else "─ 0"
+                unresolved_diff_str = f"{stats['unresolved_trend']} {stats['unresolved_diff']:+}" if stats[
+                                                                                                         'unresolved_diff'] != 0 else "─ 0"
+
+                # 拼接单行数据
+                data_line = (
+                    f"{cat_id:<8} "
+                    f"{stats['category_title']:<20} "
+                    f"{stats['yesterday_resolved']:<12} "
+                    f"{stats['today_resolved']:<12} "
+                    f"{resolved_diff_str:<15} "
+                    f"{stats['yesterday_unresolved']:<12} "
+                    f"{stats['today_unresolved']:<12} "
+                    f"{unresolved_diff_str:<15}"
+                )
+                result_str += data_line + "\n"
+
+        # 返回最终拼接的字符串
+        return result_str
+
+    def print_weekly_result(self, compare_result: Dict, weekly_dates: List[str]) -> str:
+        """
+        改造后：返回一周对比结果的格式化字符串（用于飞书发送）
+        返回：拼接好的统计字符串，兼容飞书消息换行/格式
+        """
+        # 初始化结果字符串
+        result_str = ""
+
+        # 提取有效日期（从第一个有数据的大类中获取）
+        valid_dates = []
+        for channel_data in compare_result.values():
+            for cat_stats in channel_data.values():
+                valid_dates = cat_stats.get("valid_dates", [])
+                break
+            if valid_dates:
+                break
+
+        # 拼接一周对比标题和分隔线
+        result_str += "\n" + "=" * 150 + "\n"
+        result_str += f"📊 一周数据变化对比：{valid_dates[0]} ~ {valid_dates[-1]}（共{len(valid_dates)}天）" + "\n"
+        result_str += "=" * 150 + "\n"
+
+        for channel, category_data in compare_result.items():
+            if not category_data:  # 渠道下无大类数据，跳过
+                continue
+
+            # 拼接渠道名称和分隔线
+            result_str += f"\n🔹 渠道：{channel}" + "\n"
+            result_str += "-" * 130 + "\n"
+
+            # 构建日期表头（简化显示为MM-DD）
+            date_header_resolved = " | ".join([f"{date[5:]}已解决" for date in valid_dates]) + " | "
+            date_header_unresolved = " | ".join([f"{date[5:]}未解决" for date in valid_dates]) + " | "
+            full_header = date_header_resolved + date_header_unresolved
+
+            # 拼接表头
+            header_line = (
+                f"{'大类ID':<8} {'大类名称':<20} {full_header} "
+                f"{'累计变化(已解决)':<15} {'日均变化(已解决)':<15} "
+                f"{'累计变化(未解决)':<15} {'日均变化(未解决)':<15}"
+            )
+            result_str += header_line + "\n"
+
+            # 拼接表头分隔线
+            separator_line = (
+                f"{'─' * 8:<8} {'─' * 20:<20} {'─' * (len(full_header) - 1):<{len(full_header) - 1}} "
+                f"{'─' * 15:<15} {'─' * 15:<15} {'─' * 15:<15} {'─' * 15:<15}"
+            )
+            result_str += separator_line + "\n"
+
+            # 拼接每个大类的一周数据
+            for cat_id, stats in category_data.items():
+                # 构建每天的数值字符串
+                daily_resolved_str = " | ".join([f"{val:<8}" for val in stats['daily_resolved']]) + " | "
+                daily_unresolved_str = " | ".join([f"{val:<8}" for val in stats['daily_unresolved']]) + " | "
+                daily_str = daily_resolved_str + daily_unresolved_str
+
+                # 格式化变化值
+                total_resolved_str = f"{stats['resolved_trend']} {stats['total_resolved_diff']:+}" if stats[
+                                                                                                          'total_resolved_diff'] != 0 else "─ 0"
+                total_unresolved_str = f"{stats['unresolved_trend']} {stats['total_unresolved_diff']:+}" if stats[
+                                                                                                                'total_unresolved_diff'] != 0 else "─ 0"
+
+                # 拼接单行数据
+                data_line = (
+                    f"{cat_id:<8} "
+                    f"{stats['category_title']:<20} "
+                    f"{daily_str:<{len(full_header) - 1}} "
+                    f"{total_resolved_str:<15} "
+                    f"{stats['avg_resolved_diff']:<15} "
+                    f"{total_unresolved_str:<15} "
+                    f"{stats['avg_unresolved_diff']:<15}"
+                )
+                result_str += data_line + "\n"
+
+        # 返回最终拼接的字符串
+        return result_str
+
+    def one_day_compare(self) -> None:
+        """
+        单日对比主方法：昨日vs今日
+        """
+        try:
+            # 1. 读取YAML数据
+            yaml_data = self.load_yaml_data("data_save.yaml")
+
+            # 2. 获取昨天和今天的日期
+            yesterday_date, today_date = self.get_yesterday_and_today_dates()
+            title =f"🔍 待对比日期：昨天[{yesterday_date}] → 今天[{today_date}]"
+
+            # 3. 执行数据对比
+            compare_result = self.compare_daily_data(yaml_data, yesterday_date, today_date)
+
+            # 4. 格式化输出结果
+            content =self.print_compare_result(compare_result, yesterday_date, today_date)
+            self.send_to_feishu(data=content, platform="Android",type="day_count", title=title)
+
+        except FileNotFoundError as e:
+            print(e)
+            print("💡 提示：请先确保data_save.yaml文件存在，且包含至少两天的统计数据")
+        except Exception as e:
+            print(f"❌ 对比失败：{str(e)}")
+
+    def weekly_compare(self) -> None:
+        """
+        新增：一周对比主方法
+        """
+        try:
+            # 1. 读取YAML数据
+            yaml_data = self.load_yaml_data("data_save.yaml")
+
+            # 2. 获取过去7天日期范围
+            weekly_dates = self.get_weekly_date_range()
+            title= f"🔍 一周对比日期范围：{weekly_dates[0]} ~ {weekly_dates[-1]}"
+
+            # 3. 执行一周数据对比
+            compare_result = self.compare_weekly_data(yaml_data, weekly_dates)
+
+            # 4. 格式化输出一周对比结果
+            content = self.print_weekly_result(compare_result, weekly_dates)
+
+            self.send_to_feishu(data=content, platform="Android",type="week_count", title=title)
+
+        except FileNotFoundError as e:
+            print(e)
+            print("💡 提示：请先确保data_save.yaml文件存在，且包含至少两天的统计数据")
+        except ValueError as e:
+            print(e)
+        except Exception as e:
+            print(f"❌ 一周对比失败：{str(e)}")
+
     def run(self):
         """主运行逻辑"""
         try:
@@ -855,12 +1508,18 @@ class FeedbackCount(threading.Thread):
                 print("⚠️  未获取到反馈类型配置，可能影响统计功能")
 
             # 早上10点发送日报
-            if current_hour == 9:
+            if current_hour == 11:
+                self.count_all()
                 self.get_recent_feedback(hours=1)
                 self.get_daily_summary()
+                self.one_day_compare()
                 # 周一发送周报
                 if weekday == 0:
+                    self.get_recent_feedback(hours=1)
                     self.get_weekly_summary()
+                    self.weekly_compare()
+                else:
+                    self.get_recent_feedback(hours=1)
 
             # 早上8点发送汇总明细
             elif current_hour == 8:
@@ -925,3 +1584,10 @@ def main():
 if __name__ == '__main__':
     count = FeedbackCount()
     count.run()
+    # # 测试1：单日对比（昨日vs今日）
+    # print("======= 单日对比 =======")
+    # count.one_day_compare()
+
+    # # 测试2：一周对比
+    # print("\n======= 一周对比 =======")
+    # count.weekly_compare()
