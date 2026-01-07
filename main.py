@@ -37,8 +37,8 @@ class FeedbackCount(threading.Thread):
         # 'Android': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e',
         'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/3b0f5a23-d5cd-45a4-9f53-033f1d62a351',
         # 'iOS': 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e',
-        # "Count": "https://open.feishu.cn/open-apis/bot/v2/hook/6954f098-de98-49e3-8640-f04ae47161ba"
-        "Count": 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e'
+        "Count": "https://open.feishu.cn/open-apis/bot/v2/hook/6954f098-de98-49e3-8640-f04ae47161ba"
+        # "Count": 'https://open.feishu.cn/open-apis/bot/v2/hook/f6b2fd6a-5bd1-4fea-be82-5ef644e7fe5e'
     }
 
     # API配置
@@ -1509,10 +1509,10 @@ class FeedbackCount(threading.Thread):
                 print("⚠️  未获取到反馈类型配置，可能影响统计功能")
 
             # 早上10点发送日报
-            if current_hour == 10:
+            if current_hour == 9:
                 self.count_all()
-                # self.get_recent_feedback(hours=1)
-                # self.get_daily_summary()
+                self.get_recent_feedback(hours=1)
+                self.get_daily_summary()
                 self.one_day_compare()
                 # 周一发送周报
                 if weekday == 0:
