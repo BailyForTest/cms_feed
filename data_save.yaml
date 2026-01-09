@@ -1058,3 +1058,268 @@
       category_title: 内容相关问题
       resolved_total: 0
       unresolved_total: 0
+'2026-01-09':
+  LOKLOK_LOKLOK_APP:
+    29:
+      category_title: VIP相关
+      resolved_total: 4471
+      unresolved_total: 7885
+    89:
+      category_title: 内容相关问题
+      resolved_total: 763
+      unresolved_total: 925
+    88:
+      category_title: 下载相关
+      resolved_total: 987
+      unresolved_total: 1345
+    90:
+      category_title: 投屏相关
+      resolved_total: 102
+      unresolved_total: 174
+    103:
+      category_title: APP相关
+      resolved_total: 185
+      unresolved_total: 279
+    31:
+      category_title: 账号相关
+      resolved_total: 2137
+      unresolved_total: 2523
+    104:
+      category_title: 功能相关
+      resolved_total: 34
+      unresolved_total: 49
+    106:
+      category_title: PC相关
+      resolved_total: 25
+      unresolved_total: 53
+    109:
+      category_title: TV相关
+      resolved_total: 66
+      unresolved_total: 48
+  MOVIEBOX_MOVIEBOX_APP:
+    46:
+      category_title: VIP相关
+      resolved_total: 4589
+      unresolved_total: 4558
+    92:
+      category_title: 内容相关问题
+      resolved_total: 1333
+      unresolved_total: 1423
+    125:
+      category_title: 下载相关
+      resolved_total: 1945
+      unresolved_total: 3095
+    126:
+      category_title: 投屏相关
+      resolved_total: 53
+      unresolved_total: 97
+    131:
+      category_title: APP相关
+      resolved_total: 225
+      unresolved_total: 197
+    127:
+      category_title: 账号相关
+      resolved_total: 167
+      unresolved_total: 140
+    128:
+      category_title: 功能相关
+      resolved_total: 117
+      unresolved_total: 109
+    129:
+      category_title: PC相关
+      resolved_total: 127
+      unresolved_total: 167
+  MAGIS_MAGIS_APP:
+    58:
+      category_title: 功能引导
+      resolved_total: 110
+      unresolved_total: 87
+    57:
+      category_title: VIP相关
+      resolved_total: 135
+      unresolved_total: 123
+    56:
+      category_title: 账号问题
+      resolved_total: 48
+      unresolved_total: 75
+    55:
+      category_title: 内容相关问题
+      resolved_total: 85
+      unresolved_total: 69
+    54:
+      category_title: 产品相关
+      resolved_total: 31
+      unresolved_total: 45
+    53:
+      category_title: 其他
+      resolved_total: 61
+      unresolved_total: 175
+  HITV_HITV_APP:
+    41:
+      category_title: VIP相关
+      resolved_total: 2042
+      unresolved_total: 4918
+    94:
+      category_title: 内容相关问题
+      resolved_total: 577
+      unresolved_total: 2504
+    124:
+      category_title: 下载相关
+      resolved_total: 264
+      unresolved_total: 808
+    118:
+      category_title: 投屏相关
+      resolved_total: 51
+      unresolved_total: 182
+    119:
+      category_title: APP相关
+      resolved_total: 142
+      unresolved_total: 247
+    120:
+      category_title: 账号相关
+      resolved_total: 131
+      unresolved_total: 538
+    121:
+      category_title: 功能相关
+      resolved_total: 51
+      unresolved_total: 87
+    122:
+      category_title: PC相关
+      resolved_total: 60
+      unresolved_total: 165
+  LOKLOK_RookTV_APP:
+    85:
+      category_title: 功能引导
+      resolved_total: 48
+      unresolved_total: 99
+    83:
+      category_title: VIP相关
+      resolved_total: 216
+      unresolved_total: 481
+    81:
+      category_title: 账号问题
+      resolved_total: 49
+      unresolved_total: 123
+    77:
+      category_title: 内容/字幕相关问题
+      resolved_total: 131
+      unresolved_total: 290
+    76:
+      category_title: 产品相关
+      resolved_total: 142
+      unresolved_total: 346
+    75:
+      category_title: 其他
+      resolved_total: 120
+      unresolved_total: 944
+  LOKLOK_StarPulse_APP: {}
+  LOKLOK_Shortee_APP: {}
+  LOKLOK_LOKTV_APP:
+    84:
+      category_title: VIP相关
+      resolved_total: 1074
+      unresolved_total: 2807
+    80:
+      category_title: 内容相关问题
+      resolved_total: 657
+      unresolved_total: 982
+    111:
+      category_title: 下载相关
+      resolved_total: 562
+      unresolved_total: 966
+    112:
+      category_title: 投屏相关
+      resolved_total: 48
+      unresolved_total: 109
+    113:
+      category_title: APP相关
+      resolved_total: 95
+      unresolved_total: 167
+    114:
+      category_title: 账号相关
+      resolved_total: 334
+      unresolved_total: 203
+    115:
+      category_title: 功能相关
+      resolved_total: 54
+      unresolved_total: 91
+    116:
+      category_title: PC相关
+      resolved_total: 45
+      unresolved_total: 77
+    117:
+      category_title: TV相关
+      resolved_total: 112
+      unresolved_total: 112
+  LOKLOK_showlytv_APP: {}
+  LOKLOK_MovieNook_APP: {}
+  LOKLOK_KuuTV_KUU_TV:
+    74:
+      category_title: 功能引导
+      resolved_total: 0
+      unresolved_total: 0
+    73:
+      category_title: 联系我们
+      resolved_total: 0
+      unresolved_total: 0
+    71:
+      category_title: 未成年模式
+      resolved_total: 0
+      unresolved_total: 0
+    70:
+      category_title: 账号问题
+      resolved_total: 0
+      unresolved_total: 0
+    69:
+      category_title: 内容/字幕相关问题
+      resolved_total: 1
+      unresolved_total: 0
+    68:
+      category_title: VIP相关
+      resolved_total: 0
+      unresolved_total: 0
+    65:
+      category_title: 产品相关
+      resolved_total: 1
+      unresolved_total: 0
+  LOKLOK_NovixTV_APP: {}
+  LOKLOK_VirevoTV_APP: {}
+  LOKLOK_LOKLOK_WINDOWS_PC:
+    48:
+      category_title: 产品相关
+      resolved_total: 0
+      unresolved_total: 0
+    49:
+      category_title: 登陆相关
+      resolved_total: 0
+      unresolved_total: 0
+    50:
+      category_title: 内容/字幕相关问题
+      resolved_total: 0
+      unresolved_total: 0
+  HITV_HITV_WINDOWS_PC:
+    59:
+      category_title: 产品相关
+      resolved_total: 0
+      unresolved_total: 0
+    60:
+      category_title: 登陆相关
+      resolved_total: 0
+      unresolved_total: 0
+    61:
+      category_title: 内容相关问题
+      resolved_total: 0
+      unresolved_total: 0
+  MOVIEBOX_MOVIEBOX_WINDOWS_PC:
+    62:
+      category_title: 产品相关
+      resolved_total: 0
+      unresolved_total: 0
+    63:
+      category_title: 登陆相关
+      resolved_total: 0
+      unresolved_total: 0
+    64:
+      category_title: 内容相关问题
+      resolved_total: 0
+      unresolved_total: 0
